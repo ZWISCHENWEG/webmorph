@@ -1,2 +1,3 @@
 # Alembic root gitignore
 __pycache__/
+.env

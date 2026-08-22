@@ -149,3 +149,11 @@ async def test_demo_mode_enabled(
         # Collector state reflects it
         await db_session.refresh(collector)
         assert collector.state == CollectorState.DRIFT_DETECTED
+
+        # 7. Pipeline integration: Incident created and transitioned to DIAGNOSING
+        from app.models.incident import Incident, IncidentStatus
+
+        stmt_inc = select(Incident).where(Incident.collector_id == collector.id)
+        incident = (await db_session.scalars(stmt_inc)).first()
+        assert incident is not None, "Incident was not created by the worker pipeline"
+        assert incident.status == IncidentStatus.DIAGNOSING

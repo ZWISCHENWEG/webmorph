@@ -12,6 +12,7 @@ from app.models.job import Job, JobStatus
 from app.models.run import Run, RunStatus
 from app.models.snapshot import Snapshot, ValidationState
 from app.services.brightdata_service import BrightDataService, BrightDataServiceError
+from app.services.incident_service import IncidentService
 from app.validation.engine import process_payload
 
 logger = logging.getLogger(__name__)
@@ -151,6 +152,7 @@ async def process_collection_job(job_id: int):
             health_score=validation_result.health_score,
         )
         session.add(snapshot)
+        await session.flush()  # Populate snapshot.id for incident generation
 
         # State transition on Collector
         old_state = collector.state
@@ -178,6 +180,9 @@ async def process_collection_job(job_id: int):
                 },
             )
             session.add(audit)
+
+        # Trigger Incident state machine if drift detected
+        await IncidentService.evaluate_snapshot(session, snapshot)
 
         job.status = JobStatus.SUCCEEDED
         await session.commit()
