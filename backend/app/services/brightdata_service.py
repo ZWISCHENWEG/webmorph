@@ -55,8 +55,9 @@ class BrightDataResultNormalizer:
             # The spec requires bright_data_snapshot_id for idempotency.
             # If the real CLI does not provide one, we generate a trace ID
             import uuid
+
             snapshot_id = f"trace_{uuid.uuid4().hex[:12]}"
-            
+
         return snapshot_id, payload
 
 
@@ -107,14 +108,14 @@ class BrightDataService:
             # Wait for output or timeout
             stdout_data, stderr_data = await asyncio.wait_for(
                 asyncio.gather(
-                    read_stream_bounded(process.stdout),
-                    read_stream_bounded(process.stderr)
+                    read_stream_bounded(process.stdout), read_stream_bounded(process.stderr)
                 ),
-                timeout=timeout
+                timeout=timeout,
             )
             await process.wait()
         except TimeoutError as e:
             import contextlib
+
             with contextlib.suppress(OSError):
                 process.kill()
             raise BrightDataServiceError("Execution timed out.", "ERR_CLI_TIMEOUT", True) from e
