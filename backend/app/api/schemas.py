@@ -118,3 +118,7 @@ class IncidentDetailSchema(IncidentSummarySchema):
 
 class IncidentListResponse(BaseModel):
     data: list[IncidentSummarySchema]
+
+
+class ApprovalRequest(BaseModel):
+    approved: bool
