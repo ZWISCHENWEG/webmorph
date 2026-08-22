@@ -241,6 +241,7 @@ async def approve_incident(
     # Let me return 202 via Response, or just fix it in the next update.
     # I'll just return it for now.
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
         content={"job_id": f"job_{job.id}", "status": "QUEUED"},

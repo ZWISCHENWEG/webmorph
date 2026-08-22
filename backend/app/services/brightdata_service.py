@@ -171,6 +171,7 @@ class BrightDataService:
                 total_bytes += len(chunk)
                 if total_bytes > max_bytes:
                     import contextlib
+
                     with contextlib.suppress(OSError):
                         process.kill()
                     raise BrightDataServiceError(
@@ -189,6 +190,7 @@ class BrightDataService:
             await process.wait()
         except TimeoutError as e:
             import contextlib
+
             with contextlib.suppress(OSError):
                 process.kill()
             raise BrightDataServiceError("Execution timed out.", "ERR_CLI_TIMEOUT", True) from e
@@ -250,6 +252,7 @@ class BrightDataService:
                 total_bytes += len(chunk)
                 if total_bytes > max_bytes:
                     import contextlib
+
                     with contextlib.suppress(OSError):
                         process.kill()
                     raise BrightDataServiceError(
@@ -267,6 +270,7 @@ class BrightDataService:
             await process.wait()
         except TimeoutError as e:
             import contextlib
+
             with contextlib.suppress(OSError):
                 process.kill()
             raise BrightDataServiceError("Execution timed out.", "ERR_CLI_TIMEOUT", True) from e

@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import logging
 
 from sqlalchemy import select
@@ -14,6 +15,20 @@ from app.services.brightdata_service import BrightDataService, BrightDataService
 from app.validation.engine import process_payload
 
 logger = logging.getLogger(__name__)
+
+
+def _apply_demo_mutation(payload):
+    """
+    Deterministically mutate the payload for DEMO_MODE drift detection.
+    Safely removes the 'browser_support' key from the first record.
+    """
+    if not payload or not isinstance(payload, list):
+        return payload
+
+    mutated = copy.deepcopy(payload)
+    if isinstance(mutated[0], dict) and "browser_support" in mutated[0]:
+        del mutated[0]["browser_support"]
+    return mutated
 
 
 async def process_collection_job(job_id: int):
@@ -116,6 +131,9 @@ async def process_collection_job(job_id: int):
 
         baseline_results = await session.scalars(baseline_stmt)
         baseline_counts = [s.record_count for s in baseline_results]
+
+        if settings.demo_mode:
+            raw_payload = _apply_demo_mutation(raw_payload)
 
         # Pass through Phase 3 Validation Engine
         validation_result = process_payload(raw_payload, baseline_counts)

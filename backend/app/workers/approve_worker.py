@@ -80,7 +80,7 @@ async def process_approve_job(job_id: int):
             async with session.begin_nested():
                 incident.status = failure_state
                 healing_event.status = heal_status
-                
+
                 await AuditEventService.log_event(
                     session,
                     "INCIDENT_STATE_CHANGED",
@@ -267,7 +267,7 @@ async def process_approve_job(job_id: int):
                     )
                 await session.commit()
                 return
-        
+
         # Calculate Stability
         baseline_stmt = (
             select(Snapshot)
@@ -308,18 +308,18 @@ async def process_approve_job(job_id: int):
         # - record stability >= 90
         # - no critical validation errors (if any, already caught in schema validity)
         # - Bright Data run completed successfully (already checked)
-        
+
         recovery_passed = True
-        
+
         if validation_result.health_score < 95.0:
             recovery_passed = False
-        
+
         if validation_result.schema_validity_score < 100.0:
             recovery_passed = False
-            
+
         if validation_result.stability_score < 90.0:
             recovery_passed = False
-            
+
         if validation_result.completeness_score < 95.0:
             recovery_passed = False
 
@@ -327,7 +327,7 @@ async def process_approve_job(job_id: int):
             async with session.begin_nested():
                 incident.status = IncidentStatus.RECOVERED
                 healing_event.status = HealingStatus.RECOVERED
-                
+
                 await AuditEventService.log_event(
                     session,
                     "INCIDENT_STATE_CHANGED",

@@ -16,13 +16,13 @@ async def get_job(
     """Get a single job by ID."""
     if not job_id.startswith("job_"):
         raise HTTPException(status_code=404, detail="Job not found")
-        
+
     id_str = job_id[4:]
     if not id_str.isdigit():
         raise HTTPException(status_code=404, detail="Job not found")
-        
+
     db_job_id = int(id_str)
-    
+
     job = await session.get(Job, db_job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")

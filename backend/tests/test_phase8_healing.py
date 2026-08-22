@@ -227,11 +227,12 @@ async def test_worker_cli_failure(
     db_session.add(job)
     await db_session.commit()
 
-    with patch(
-        "app.services.brightdata_service.BrightDataService.request_heal",
-        side_effect=BrightDataServiceError("Timeout", "ERR_CLI_TIMEOUT", True),
-    ), patch(
-        "app.workers.heal_worker.async_session_factory", side_effect=mock_session_factory
+    with (
+        patch(
+            "app.services.brightdata_service.BrightDataService.request_heal",
+            side_effect=BrightDataServiceError("Timeout", "ERR_CLI_TIMEOUT", True),
+        ),
+        patch("app.workers.heal_worker.async_session_factory", side_effect=mock_session_factory),
     ):
         await process_heal_job(job.id)
 
@@ -277,8 +278,11 @@ async def test_worker_db_failure_rollback(
     with patch(
         "app.services.brightdata_service.BrightDataService.request_heal", return_value=mock_proposal
     ):
-        with patch.object(AuditEventService, "log_event", side_effect=mock_log), patch(
-            "app.workers.heal_worker.async_session_factory", side_effect=mock_session_factory
+        with (
+            patch.object(AuditEventService, "log_event", side_effect=mock_log),
+            patch(
+                "app.workers.heal_worker.async_session_factory", side_effect=mock_session_factory
+            ),
         ):
             await process_heal_job(job.id)
 

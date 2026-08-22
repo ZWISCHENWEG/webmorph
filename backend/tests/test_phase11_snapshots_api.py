@@ -46,7 +46,7 @@ async def test_get_snapshots_pagination_schema_and_ordering(
     db_session.add(collector)
     await db_session.commit()
     await db_session.refresh(collector)
-    
+
     run = Run(collector_id=collector.id, contract_version=1)
     db_session.add(run)
     await db_session.commit()
@@ -66,7 +66,7 @@ async def test_get_snapshots_pagination_schema_and_ordering(
             completeness_score=100.0,
             schema_validity_score=100.0,
             stability_score=100.0,
-            validation_details={"fields": "ok"}
+            validation_details={"fields": "ok"},
         )
         db_session.add(snap)
     await db_session.commit()
@@ -76,13 +76,13 @@ async def test_get_snapshots_pagination_schema_and_ordering(
     assert res.status_code == 200
     data = res.json()["data"]
     assert len(data) == 3
-    
+
     # Check deterministic ordering (descending by created_at and id)
     # The last inserted should be first.
     assert data[0]["bright_data_snapshot_id"] == "j_test_2"
     assert data[1]["bright_data_snapshot_id"] == "j_test_1"
     assert data[2]["bright_data_snapshot_id"] == "j_test_0"
-    
+
     # Check schema and raw_payload absence
     first = data[0]
     assert "id" in first
@@ -90,12 +90,12 @@ async def test_get_snapshots_pagination_schema_and_ordering(
     assert "raw_payload" not in first
     assert first["normalized_payload"] == {"clean": "data", "id": 2}
     assert first["health_score"] == 100.0
-    
+
     # Pagination test
     res_limit = await async_client.get(f"/api/collectors/{collector.id}/snapshots?limit=2&skip=0")
     assert res_limit.status_code == 200
     assert len(res_limit.json()["data"]) == 2
-    
+
     res_skip = await async_client.get(f"/api/collectors/{collector.id}/snapshots?limit=2&skip=2")
     assert res_skip.status_code == 200
     assert len(res_skip.json()["data"]) == 1

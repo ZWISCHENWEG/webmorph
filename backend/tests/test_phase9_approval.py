@@ -135,9 +135,7 @@ async def test_api_approve_success(
 
 
 @pytest.mark.asyncio
-async def test_worker_success(
-    db_session: AsyncSession, incident_awaiting, mock_session_factory
-):
+async def test_worker_success(db_session: AsyncSession, incident_awaiting, mock_session_factory):
     # Transition manually as the API would
     incident_awaiting.status = IncidentStatus.APPROVED
     stmt = select(HealingEvent).where(HealingEvent.incident_id == incident_awaiting.id)
@@ -155,16 +153,12 @@ async def test_worker_success(
     await db_session.commit()
 
     # Mock approval and run_collector
-    with patch(
-        "app.services.brightdata_service.BrightDataService.approve_heal"
-    ) as mock_approve, patch(
-        "app.services.brightdata_service.BrightDataService.run_collector"
-    ) as mock_run, patch(
-        "app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory
-    ), patch(
-        "app.workers.approve_worker.process_payload"
-    ) as mock_process:
-        
+    with (
+        patch("app.services.brightdata_service.BrightDataService.approve_heal") as mock_approve,
+        patch("app.services.brightdata_service.BrightDataService.run_collector") as mock_run,
+        patch("app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory),
+        patch("app.workers.approve_worker.process_payload") as mock_process,
+    ):
         # Setup mock process_payload return for strict recovery criteria
         mock_validation = MagicMock()
         mock_validation.health_score = 95.0
@@ -212,11 +206,12 @@ async def test_worker_approval_failure(
     db_session.add(job)
     await db_session.commit()
 
-    with patch(
-        "app.services.brightdata_service.BrightDataService.approve_heal",
-        side_effect=BrightDataServiceError("Approval failed", "ERR_CLI_FAILED", False)
-    ), patch(
-        "app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory
+    with (
+        patch(
+            "app.services.brightdata_service.BrightDataService.approve_heal",
+            side_effect=BrightDataServiceError("Approval failed", "ERR_CLI_FAILED", False),
+        ),
+        patch("app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory),
     ):
         await process_approve_job(job.id)
 
@@ -228,10 +223,14 @@ async def test_worker_approval_failure(
     assert incident_awaiting.status == IncidentStatus.MANUAL_INTERVENTION
     assert he.status == HealingStatus.FAILED
 
-    stmt_audit = select(AuditEvent).where(
-        AuditEvent.related_entity_ref == f"incident:{incident_awaiting.id}",
-        AuditEvent.event_type == "INCIDENT_STATE_CHANGED"
-    ).order_by(AuditEvent.id.desc())
+    stmt_audit = (
+        select(AuditEvent)
+        .where(
+            AuditEvent.related_entity_ref == f"incident:{incident_awaiting.id}",
+            AuditEvent.event_type == "INCIDENT_STATE_CHANGED",
+        )
+        .order_by(AuditEvent.id.desc())
+    )
     latest_audit = (await db_session.execute(stmt_audit)).scalars().first()
     assert latest_audit.metadata_json["new_state"] == "MANUAL_INTERVENTION"
 
@@ -255,16 +254,12 @@ async def test_worker_criteria_failure(
     db_session.add(job)
     await db_session.commit()
 
-    with patch(
-        "app.services.brightdata_service.BrightDataService.approve_heal"
-    ), patch(
-        "app.services.brightdata_service.BrightDataService.run_collector"
-    ) as mock_run, patch(
-        "app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory
-    ), patch(
-        "app.workers.approve_worker.process_payload"
-    ) as mock_process:
-        
+    with (
+        patch("app.services.brightdata_service.BrightDataService.approve_heal"),
+        patch("app.services.brightdata_service.BrightDataService.run_collector") as mock_run,
+        patch("app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory),
+        patch("app.workers.approve_worker.process_payload") as mock_process,
+    ):
         # Setup mock process_payload return for failing recovery criteria (schema < 100)
         mock_validation = MagicMock()
         mock_validation.health_score = 95.0

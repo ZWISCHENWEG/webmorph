@@ -123,14 +123,7 @@ async def test_get_job_success(async_client: AsyncClient, sample_job):
 
 @pytest.mark.asyncio
 async def test_api_get_job_malformed_id(async_client: AsyncClient):
-    invalid_ids = [
-        "1",
-        "abc",
-        "invalid_1",
-        "job_",
-        "job_abc",
-        "job_-1"
-    ]
+    invalid_ids = ["1", "abc", "invalid_1", "job_", "job_abc", "job_-1"]
     for i_id in invalid_ids:
         response = await async_client.get(f"/api/jobs/{i_id}")
         assert response.status_code == 404
@@ -180,7 +173,7 @@ async def test_api_500_redacts_stack_trace(async_client: AsyncClient, db_session
     with patch("app.api.routers.collectors.select") as mock_select:
         mock_select.side_effect = RuntimeError("SECRET_DATABASE_PASSWORD")
         response = await async_client.get("/api/collectors")
-        
+
         assert response.status_code == 500
         data = response.json()
         assert "error" in data
