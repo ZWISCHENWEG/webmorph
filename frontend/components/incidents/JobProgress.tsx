@@ -46,27 +46,28 @@ export function JobProgress({ jobId, onComplete }: { jobId: string, onComplete: 
   }, [jobId, jobState, onComplete]);
 
   return (
-    <div style={{ padding: '24px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--accent-cyan)', borderRadius: '4px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '1rem', color: 'var(--accent-cyan)' }}>EXECUTING REPAIR...</h3>
-        <span style={{ fontSize: '0.875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+    <div className="angular-panel glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--accent-cyan)' }}>
+      <div className="flex-row" style={{ justifyContent: 'space-between' }}>
+        <h3 className="section-header" style={{ color: 'var(--accent-cyan)' }}>Executing Repair Pipeline</h3>
+        <span style={{ fontSize: '0.875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', padding: '4px 8px', backgroundColor: 'var(--bg-panel-secondary)', border: '1px solid var(--border-tech)' }}>
           {jobState || 'QUEUED'}
         </span>
       </div>
       
       {error && (
-        <div style={{ marginTop: '12px', fontSize: '0.75rem', color: 'var(--accent-magenta)' }}>
+        <div className="chromatic-error" style={{ marginTop: '16px', fontSize: '0.75rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>
           {error}
         </div>
       )}
       
-      <div style={{ marginTop: '16px', height: '4px', backgroundColor: 'var(--bg-card)', borderRadius: '2px', overflow: 'hidden' }}>
+      <div style={{ marginTop: '24px', height: '2px', backgroundColor: 'var(--border-tech)', overflow: 'hidden', position: 'relative' }}>
         <div style={{ 
           height: '100%', 
           backgroundColor: 'var(--accent-cyan)',
           width: jobState === 'SUCCEEDED' ? '100%' : '50%',
-          transition: 'width 1s ease',
-          animation: jobState === 'RUNNING' ? 'pulse 2s infinite' : 'none'
+          transition: 'width var(--transition-medium)',
+          animation: jobState === 'RUNNING' ? 'pulse 2s infinite' : 'none',
+          boxShadow: 'var(--shadow-cyan)'
         }} />
       </div>
       <style dangerouslySetInnerHTML={{__html: `

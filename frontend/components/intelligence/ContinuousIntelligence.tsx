@@ -42,41 +42,42 @@ export function ContinuousIntelligence({ collectorId }: { collectorId: number })
   }, [collectorId]);
 
   if (loading) {
-    return <div style={{ color: 'var(--text-secondary)', padding: '48px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>GATHERING INTELLIGENCE...</div>;
+    return <div className="halftone-bg angular-panel empty-state">GATHERING INTELLIGENCE...</div>;
   }
 
   if (error || !collector) {
     return (
-      <div style={{ color: 'var(--accent-magenta)', padding: '24px', border: '1px solid rgba(255,0,85,0.2)', backgroundColor: 'rgba(255,0,85,0.05)', borderRadius: '4px' }}>
-        <strong>ERROR:</strong> {error || 'Collector not found'}
+      <div className="angular-panel system-error">
+        <strong className="chromatic-error">ERROR:</strong> {error || 'Collector not found'}
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       
       {/* Current State */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
+      <div className="angular-panel glass-panel halftone-bg flex-row" style={{ justifyContent: 'space-between', padding: '24px' }}>
         <div>
-          <h2 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '8px' }}>Target: <span className="mono">{collector.bright_data_collector_id}</span></h2>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Contract v{collector.current_contract_version}</div>
+          <h2 className="section-header" style={{ marginBottom: '8px' }}>Target: <span className="mono" style={{ color: 'var(--accent-cyan)' }}>{collector.bright_data_collector_id}</span></h2>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontFamily: 'var(--font-mono)' }}>[ CONTRACT v{collector.current_contract_version} ]</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>CURRENT HEALTH</div>
+          <div className="stat-label">CURRENT HEALTH</div>
           <HealthBadge state={collector.state} score={collector.latest_health_score} />
         </div>
       </div>
 
-      <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)' }} />
-      
-      <h3 style={{ fontSize: '1.125rem', color: 'var(--text-primary)', marginTop: '8px' }}>Verified Historical Intelligence</h3>
+      <div className="flex-row">
+        <h3 className="section-header" style={{ margin: 0 }}>Verified Historical Intelligence</h3>
+        <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', border: '1px solid var(--border-cyan)', padding: '4px 8px', fontFamily: 'var(--font-mono)', backgroundColor: 'rgba(0, 229, 255, 0.05)' }}>VERIFIED DATA ONLY</span>
+      </div>
 
       {snapshots.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center', backgroundColor: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: '4px' }}>
-          <h4 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Insufficient Verified Data</h4>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Continuous Intelligence metrics require verified, HEALTHY snapshots. 
+        <div className="halftone-bg angular-panel glass-panel empty-state">
+          <h4 className="section-header" style={{ marginBottom: '16px' }}>Insufficient Verified Data</h4>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontFamily: 'var(--font-mono)' }}>
+            Continuous Intelligence metrics require verified, HEALTHY snapshots. <br/>
             Currently, there are no healthy historical snapshots available for this collector.
           </p>
         </div>
@@ -102,22 +103,22 @@ function IntelligenceMetrics({ snapshots }: { snapshots: Snapshot[] }) {
   const domainKeys = Object.keys(payload).slice(0, 4); // Show up to 4 schema keys as an example of what is being extracted
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+    <div className="grid-stats">
       
       <MetricCard title="AVERAGE HEALTH" value={avgHealth.toFixed(1)} sparkline={snapshots.map(s => s.health_score || 0)} />
       <MetricCard title="COMPLETENESS TREND" value={avgCompleteness.toFixed(1)} sparkline={snapshots.map(s => s.completeness_score || 0)} />
       <MetricCard title="SCHEMA STABILITY" value={avgStability.toFixed(1)} sparkline={snapshots.map(s => s.stability_score || 0)} />
       
-      <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '16px', fontFamily: 'var(--font-mono)' }}>VERIFIED PAYLOAD SCHEMA</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--border-tech)' }}>
+        <div className="stat-label" style={{ marginBottom: '24px' }}>VERIFIED PAYLOAD SCHEMA</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {domainKeys.length > 0 ? domainKeys.map(k => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+            <div key={k} className="flex-row" style={{ justifyContent: 'space-between', fontSize: '0.875rem', paddingBottom: '8px', borderBottom: '1px dashed var(--border-tech)' }}>
               <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{k}</span>
               <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{typeof payload[k]}</span>
             </div>
           )) : (
-            <span style={{ color: 'var(--text-muted)' }}>No top-level keys detected</span>
+            <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>[ NO TOP-LEVEL KEYS DETECTED ]</span>
           )}
         </div>
       </div>
@@ -139,12 +140,13 @@ function MetricCard({ title, value, sparkline }: { title: string, value: string,
   }).join(' ');
 
   return (
-    <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
-      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>{title}</div>
-      <div style={{ fontSize: '2rem', fontWeight: 600, fontFamily: 'var(--font-mono)', marginBottom: '16px' }}>{value}</div>
+    <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--border-cyan)' }}>
+      <div className="stat-label" style={{ marginBottom: '12px' }}>{title}</div>
+      <div className="stat-value" style={{ marginBottom: '24px' }}>{value}</div>
       
-      <div style={{ height: '40px', width: '100%' }}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+      <div style={{ height: '48px', width: '100%', position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'linear-gradient(to right, transparent, var(--accent-cyan))' }} />
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible', position: 'relative', zIndex: 1 }}>
           <polyline 
             points={points} 
             fill="none" 

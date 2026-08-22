@@ -13,20 +13,20 @@ export function HealthBadge({ state, score }: HealthBadgeProps) {
       case 'HEALTHY':
       case 'APPROVED':
       case 'RECOVERED':
-        return { color: 'var(--accent-cyan)', borderColor: 'rgba(0, 240, 255, 0.2)', bg: 'rgba(0, 240, 255, 0.05)' };
+        return { color: 'var(--accent-cyan)', borderColor: 'var(--border-cyan)', bg: 'rgba(0, 229, 255, 0.05)' };
       case 'DEGRADED':
       case 'DIAGNOSING':
       case 'AWAITING_APPROVAL':
       case 'HEALING':
       case 'VERIFYING':
-        return { color: 'var(--accent-amber)', borderColor: 'rgba(255, 170, 0, 0.2)', bg: 'rgba(255, 170, 0, 0.05)' };
+        return { color: 'var(--accent-warning)', borderColor: 'var(--border-tech)', bg: 'rgba(255, 170, 0, 0.05)' };
       case 'DRIFT_DETECTED':
       case 'REJECTED':
       case 'HEAL_PROPOSED':
       case 'MANUAL_INTERVENTION':
-        return { color: 'var(--accent-magenta)', borderColor: 'rgba(255, 0, 85, 0.2)', bg: 'rgba(255, 0, 85, 0.05)' };
+        return { color: 'var(--accent-red)', borderColor: 'var(--border-red)', bg: 'rgba(255, 42, 42, 0.05)' };
       default:
-        return { color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)', bg: 'transparent' };
+        return { color: 'var(--text-secondary)', borderColor: 'var(--border-tech)', bg: 'transparent' };
     }
   };
 
@@ -39,7 +39,6 @@ export function HealthBadge({ state, score }: HealthBadgeProps) {
           display: 'inline-flex',
           alignItems: 'center',
           padding: '4px 8px',
-          borderRadius: '4px',
           fontSize: '0.75rem',
           fontWeight: 600,
           fontFamily: 'var(--font-mono)',
@@ -47,6 +46,7 @@ export function HealthBadge({ state, score }: HealthBadgeProps) {
           color: style.color,
           backgroundColor: style.bg,
           border: `1px solid ${style.borderColor}`,
+          textTransform: 'uppercase'
         }}
       >
         {state}

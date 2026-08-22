@@ -18,34 +18,37 @@ export function ApprovalActions({ incidentId, onActionSubmitted }: { incidentId:
   };
 
   return (
-    <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--accent-amber)', borderRadius: '4px' }}>
-      <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '16px' }}>Human Approval Required</h3>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '0.875rem' }}>
+    <div className="angular-panel glass-panel" style={{ padding: '24px', borderTop: '4px solid var(--accent-warning)', backgroundColor: 'rgba(255,170,0,0.05)' }}>
+      <h3 className="section-header" style={{ marginBottom: '16px' }}>Human Approval Required</h3>
+      <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '0.875rem', fontFamily: 'var(--font-mono)' }}>
         Please review the proposed changes above. This action will apply the schema changes and trigger a verification run.
       </p>
 
       {error && (
-        <div style={{ marginBottom: '16px', color: 'var(--accent-magenta)', fontSize: '0.875rem' }}>
+        <div className="chromatic-error" style={{ marginBottom: '24px', color: 'var(--accent-red)', fontSize: '0.875rem', fontFamily: 'var(--font-mono)' }}>
           {error}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '16px' }}>
+      <div className="flex-row">
         <button
           onClick={() => handleAction(true)}
           disabled={loading}
           style={{
             padding: '12px 24px',
-            backgroundColor: 'var(--accent-cyan)',
-            color: '#000',
-            border: 'none',
-            borderRadius: '4px',
+            backgroundColor: 'rgba(0, 229, 255, 0.1)',
+            color: 'var(--accent-cyan)',
+            border: '1px solid var(--border-cyan)',
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1,
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '0.05em',
           }}
+          onMouseOver={(e) => { if(!loading) e.currentTarget.style.backgroundColor = 'rgba(0, 229, 255, 0.2)'; }}
+          onMouseOut={(e) => { if(!loading) e.currentTarget.style.backgroundColor = 'rgba(0, 229, 255, 0.1)'; }}
         >
-          {loading ? 'PROCESSING...' : 'APPROVE HEAL'}
+          {loading ? 'PROCESSING...' : '[ APPROVE HEAL ]'}
         </button>
 
         <button
@@ -53,16 +56,19 @@ export function ApprovalActions({ incidentId, onActionSubmitted }: { incidentId:
           disabled={loading}
           style={{
             padding: '12px 24px',
-            backgroundColor: 'transparent',
-            color: 'var(--accent-magenta)',
-            border: '1px solid var(--accent-magenta)',
-            borderRadius: '4px',
+            backgroundColor: 'rgba(255, 42, 42, 0.05)',
+            color: 'var(--accent-red)',
+            border: '1px solid var(--border-red)',
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1,
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '0.05em',
           }}
+          onMouseOver={(e) => { if(!loading) e.currentTarget.style.backgroundColor = 'rgba(255, 42, 42, 0.15)'; }}
+          onMouseOut={(e) => { if(!loading) e.currentTarget.style.backgroundColor = 'rgba(255, 42, 42, 0.05)'; }}
         >
-          REJECT
+          [ REJECT ]
         </button>
       </div>
     </div>

@@ -35,7 +35,7 @@ export function IncidentView({ incidentId }: { incidentId: number }) {
 
   if (loading && !incident) {
     return (
-      <div style={{ color: 'var(--text-secondary)', padding: '48px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+      <div className="halftone-bg angular-panel empty-state">
         LOADING INCIDENT DATA...
       </div>
     );
@@ -43,10 +43,10 @@ export function IncidentView({ incidentId }: { incidentId: number }) {
 
   if (error || !incident) {
     return (
-      <div style={{ color: 'var(--accent-magenta)', padding: '24px', border: '1px solid rgba(255,0,85,0.2)', backgroundColor: 'rgba(255,0,85,0.05)', borderRadius: '4px' }}>
-        <strong>SYSTEM ERROR:</strong> {error || 'Incident not found'}
+      <div className="angular-panel system-error">
+        <strong className="chromatic-error">SYSTEM ERROR:</strong> {error || 'Incident not found'}
         <div style={{ marginTop: '16px' }}>
-          <button onClick={fetchIncident} style={{ color: 'var(--text-primary)', textDecoration: 'underline' }}>RETRY</button>
+          <button onClick={fetchIncident} className="action-link" style={{ background: 'none', border: 'none' }}>[ RETRY ]</button>
         </div>
       </div>
     );
@@ -57,28 +57,28 @@ export function IncidentView({ incidentId }: { incidentId: number }) {
     : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       
       {/* Top Meta Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>COLLECTOR TARGET</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{incident.collector_id}</div>
+      <div className="grid-stats">
+        <div className="angular-panel glass-panel halftone-bg stat-card">
+          <div className="stat-label">COLLECTOR TARGET</div>
+          <div className="stat-value" style={{ fontSize: '1.25rem' }}>{incident.collector_id}</div>
         </div>
         
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>TRIGGER RUN</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{incident.trigger_run_id}</div>
+        <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--border-cyan)' }}>
+          <div className="stat-label">TRIGGER RUN</div>
+          <div className="stat-value" style={{ fontSize: '1.25rem' }}>{incident.trigger_run_id}</div>
         </div>
         
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>CURRENT STATUS</div>
+        <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--accent-red)' }}>
+          <div className="stat-label">CURRENT STATUS</div>
           <div><HealthBadge state={incident.status} score={null} /></div>
         </div>
         
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>TIMESTAMP</div>
-          <div style={{ fontSize: '0.875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+        <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--border-tech)' }}>
+          <div className="stat-label">TIMESTAMP</div>
+          <div style={{ fontSize: '0.875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
             {new Date(incident.created_at).toLocaleString()}
           </div>
         </div>
@@ -120,9 +120,9 @@ export function IncidentView({ incidentId }: { incidentId: number }) {
       )}
 
       {incident.status === 'MANUAL_INTERVENTION' && (
-        <div style={{ padding: '24px', border: '1px solid rgba(255,170,0,0.3)', backgroundColor: 'rgba(255,170,0,0.05)', borderRadius: '4px' }}>
-          <h3 style={{ color: 'var(--accent-amber)', marginBottom: '8px' }}>⚠️ MANUAL INTERVENTION REQUIRED</h3>
-          <p style={{ color: 'var(--text-secondary)' }}>
+        <div className="angular-panel glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--accent-warning)', backgroundColor: 'rgba(255,170,0,0.05)' }}>
+          <h3 className="section-header chromatic-error" style={{ color: 'var(--accent-warning)', marginBottom: '12px' }}>⚠️ MANUAL INTERVENTION REQUIRED</h3>
+          <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
             The automated recovery pipeline has halted. This incident requires manual engineering review.
             The schema or target site changes cannot be safely healed automatically.
           </p>

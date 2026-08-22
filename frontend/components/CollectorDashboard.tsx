@@ -48,21 +48,11 @@ function RunAction({ collectorId }: { collectorId: number }) {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div className="flex-row">
       <button
         onClick={handleRun}
         disabled={loading}
-        style={{
-          padding: '6px 12px',
-          backgroundColor: loading ? 'var(--bg-secondary)' : 'var(--accent-cyan)',
-          color: loading ? 'var(--text-muted)' : '#000',
-          border: `1px solid ${loading ? 'var(--border-subtle)' : 'var(--accent-cyan)'}`,
-          borderRadius: '4px',
-          fontWeight: 600,
-          fontSize: '0.875rem',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontFamily: 'var(--font-sans)',
-        }}
+        className="btn-primary"
       >
         {loading ? 'RUNNING...' : 'START RUN'}
       </button>
@@ -74,7 +64,7 @@ function RunAction({ collectorId }: { collectorId: number }) {
       )}
       
       {error && (
-        <span style={{ fontSize: '0.75rem', color: 'var(--accent-magenta)' }}>
+        <span style={{ fontSize: '0.75rem' }} className="chromatic-error">
           {error}
         </span>
       )}
@@ -117,7 +107,7 @@ export function CollectorDashboard() {
 
   if (loading && collectors.length === 0) {
     return (
-      <div style={{ color: 'var(--text-secondary)', padding: '48px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+      <div className="halftone-bg angular-panel empty-state">
         INITIALIZING SENSORS...
       </div>
     );
@@ -125,44 +115,44 @@ export function CollectorDashboard() {
 
   if (error) {
     return (
-      <div style={{ color: 'var(--accent-magenta)', padding: '24px', border: '1px solid rgba(255,0,85,0.2)', backgroundColor: 'rgba(255,0,85,0.05)', borderRadius: '4px' }}>
-        <strong>SYSTEM ERROR:</strong> {error}
+      <div className="angular-panel system-error">
+        <strong className="chromatic-error">SYSTEM ERROR:</strong> {error}
       </div>
     );
   }
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '48px' }}>
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>TOTAL MONITORS</div>
-          <div style={{ fontSize: '2rem', fontWeight: 600 }}>{total}</div>
+      <div className="grid-stats" style={{ marginBottom: '48px' }}>
+        <div className="angular-panel glass-panel halftone-bg stat-card">
+          <div className="stat-label color-secondary">TOTAL MONITORS</div>
+          <div className="stat-value">{total}</div>
         </div>
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>HEALTHY</div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--text-primary)' }}>{healthy}</div>
+        <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--border-cyan)' }}>
+          <div className="stat-label" style={{ color: 'var(--accent-cyan)' }}>HEALTHY</div>
+          <div className="stat-value">{healthy}</div>
         </div>
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid rgba(255, 170, 0, 0.2)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--accent-amber)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>DEGRADED</div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--text-primary)' }}>{degraded}</div>
+        <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--accent-warning)' }}>
+          <div className="stat-label" style={{ color: 'var(--accent-warning)' }}>DEGRADED</div>
+          <div className="stat-value">{degraded}</div>
         </div>
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid rgba(255, 0, 85, 0.2)', borderRadius: '4px' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--accent-magenta)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>DRIFT DETECTED</div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--text-primary)' }}>{drift}</div>
+        <div className="angular-panel glass-panel stat-card" style={{ borderTop: '2px solid var(--accent-red)' }}>
+          <div className="stat-label" style={{ color: 'var(--accent-red)' }}>DRIFT DETECTED</div>
+          <div className={`stat-value ${drift > 0 ? "chromatic-error" : ""}`}>{drift}</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Active Collectors</h2>
-        <button onClick={fetchData} style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>[ REFRESH ]</button>
+      <div className="section-header-row">
+        <h2 className="section-header">Active Collectors</h2>
+        <button onClick={fetchData} className="action-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>[ REFRESH ]</button>
       </div>
 
       {collectors.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border-subtle)', borderRadius: '4px', marginBottom: '48px' }}>
+        <div className="halftone-bg angular-panel empty-state" style={{ marginBottom: '48px' }}>
           No collectors registered. Configure a Data Contract to begin.
         </div>
       ) : (
-        <div className="table-container" style={{ marginBottom: '48px' }}>
+        <div className="table-container angular-panel glass-panel" style={{ marginBottom: '48px' }}>
           <table>
             <thead>
               <tr>
@@ -186,7 +176,7 @@ export function CollectorDashboard() {
                     {new Date(collector.updated_at).toLocaleString()}
                   </td>
                   <td>
-                    <a href={`/collectors/${collector.id}`} style={{ fontSize: '0.875rem', color: 'var(--accent-cyan)', textDecoration: 'none' }}>VIEW CI →</a>
+                    <a href={`/collectors/${collector.id}`} className="action-link">VIEW CI →</a>
                   </td>
                   <td>
                     <RunAction collectorId={collector.id} />
@@ -198,16 +188,16 @@ export function CollectorDashboard() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Incident Response</h2>
+      <div className="section-header-row">
+        <h2 className="section-header">Incident Response</h2>
       </div>
 
       {incidents.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border-subtle)', borderRadius: '4px' }}>
+        <div className="halftone-bg angular-panel empty-state">
           No active incidents.
         </div>
       ) : (
-        <div className="table-container">
+        <div className="table-container angular-panel glass-panel">
           <table>
             <thead>
               <tr>
@@ -230,7 +220,7 @@ export function CollectorDashboard() {
                     {new Date(incident.created_at).toLocaleString()}
                   </td>
                   <td>
-                    <a href={`/incidents/${incident.id}`} style={{ fontSize: '0.875rem', color: 'var(--accent-cyan)', textDecoration: 'none' }}>VIEW DRIFT →</a>
+                    <a href={`/incidents/${incident.id}`} className="action-link">VIEW DRIFT →</a>
                   </td>
                 </tr>
               ))}
