@@ -7,7 +7,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import runs
+from app.api.errors import setup_exception_handlers
+from app.api.routers import collectors, incidents, jobs, runs
 from app.config import settings
 
 
@@ -38,7 +39,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(collectors.router)
+app.include_router(incidents.router)
+app.include_router(jobs.router)
 app.include_router(runs.router)
+
+setup_exception_handlers(app)
 
 
 @app.get("/api/health")
