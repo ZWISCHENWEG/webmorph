@@ -122,3 +122,31 @@ class IncidentListResponse(BaseModel):
 
 class ApprovalRequest(BaseModel):
     approved: bool
+
+
+# -------------------------------------------------------------------------
+# Snapshot
+# -------------------------------------------------------------------------
+
+
+class SnapshotSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    bright_data_snapshot_id: str
+    collector_id: int
+    run_id: int
+    contract_version: int
+    normalized_payload: dict | None
+    record_count: int
+    validation_state: str
+    health_score: float | None
+    completeness_score: float | None
+    schema_validity_score: float | None
+    stability_score: float | None
+    validation_details: dict | None
+    created_at: datetime
+
+
+class SnapshotListResponse(BaseModel):
+    data: list[SnapshotSchema]
