@@ -37,8 +37,6 @@ class Collector(Base):
     bright_data_collector_id: Mapped[str] = mapped_column(
         String(64), nullable=False, unique=True, index=True
     )
-    name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
-    target_url: Mapped[str] = mapped_column(String(2048), nullable=False, default="")
     current_contract_version: Mapped[int] = mapped_column(
         Integer, nullable=False, default=1
     )

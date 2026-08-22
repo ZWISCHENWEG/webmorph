@@ -8,7 +8,7 @@ Technical-Spec.md: HealingEvent: id, incident_id, status, approval_status, propo
 
 import enum
 
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, func
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, Integer, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -30,9 +30,18 @@ class ApprovalStatus(enum.StrEnum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
 
-
 class HealingEvent(Base):
     __tablename__ = "healing_events"
+    __table_args__ = (
+        Index(
+            "ix_active_healing_event_per_incident",
+            "incident_id",
+            unique=True,
+            sqlite_where=text("status NOT IN ('RECOVERED', 'REJECTED', 'FAILED')"),
+            postgresql_where=text("status NOT IN ('RECOVERED', 'REJECTED', 'FAILED')"),
+        ),
+    )
+
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     incident_id: Mapped[int] = mapped_column(
