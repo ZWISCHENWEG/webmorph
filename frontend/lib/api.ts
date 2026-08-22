@@ -1,4 +1,13 @@
-import { CollectorListResponse, JobTriggerResponse, Job, ErrorResponse } from '../types';
+import {
+  CollectorListResponse,
+  Collector,
+  JobTriggerResponse,
+  Job,
+  ErrorResponse,
+  IncidentListResponse,
+  IncidentDetail,
+  SnapshotListResponse
+} from '../types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -33,6 +42,20 @@ export async function getCollectors(): Promise<CollectorListResponse> {
   return handleResponse<CollectorListResponse>(response);
 }
 
+export async function getCollector(id: number): Promise<Collector> {
+  const response = await fetch(`${API_BASE_URL}/api/collectors/${id}`, {
+    cache: 'no-store'
+  });
+  return handleResponse<Collector>(response);
+}
+
+export async function getCollectorSnapshots(id: number, skip: number = 0, limit: number = 100): Promise<SnapshotListResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/collectors/${id}/snapshots?skip=${skip}&limit=${limit}`, {
+    cache: 'no-store'
+  });
+  return handleResponse<SnapshotListResponse>(response);
+}
+
 export async function triggerRun(collectorId: number): Promise<JobTriggerResponse> {
   const response = await fetch(`${API_BASE_URL}/api/collectors/${collectorId}/runs`, {
     method: 'POST',
@@ -48,4 +71,39 @@ export async function getJobStatus(jobId: string): Promise<Job> {
     cache: 'no-store'
   });
   return handleResponse<Job>(response);
+}
+
+export async function getIncidents(): Promise<IncidentListResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/incidents`, {
+    cache: 'no-store'
+  });
+  return handleResponse<IncidentListResponse>(response);
+}
+
+export async function getIncident(id: number): Promise<IncidentDetail> {
+  const response = await fetch(`${API_BASE_URL}/api/incidents/${id}`, {
+    cache: 'no-store'
+  });
+  return handleResponse<IncidentDetail>(response);
+}
+
+export async function proposeHeal(incidentId: number): Promise<JobTriggerResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/heal`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  return handleResponse<JobTriggerResponse>(response);
+}
+
+export async function approveHeal(incidentId: number, approved: boolean): Promise<{status: string, job_id?: string}> {
+  const response = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/approve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ approved })
+  });
+  return handleResponse<{status: string, job_id?: string}>(response);
 }

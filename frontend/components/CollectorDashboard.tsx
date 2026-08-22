@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { getCollectors, triggerRun, getJobStatus } from '../lib/api';
-import { Collector, Job } from '../types';
+import { getCollectors, triggerRun, getJobStatus, getIncidents } from '../lib/api';
+import { Collector, Job, IncidentSummary } from '../types';
 import { HealthBadge } from './HealthBadge';
 
 function RunAction({ collectorId }: { collectorId: number }) {
@@ -84,17 +84,22 @@ function RunAction({ collectorId }: { collectorId: number }) {
 
 export function CollectorDashboard() {
   const [collectors, setCollectors] = useState<Collector[]>([]);
+  const [incidents, setIncidents] = useState<IncidentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCollectors = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getCollectors();
-      setCollectors(res.data);
+      const [colRes, incRes] = await Promise.all([
+        getCollectors(),
+        getIncidents()
+      ]);
+      setCollectors(colRes.data);
+      setIncidents(incRes.data);
     } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to load collectors');
+      setError((err as Error).message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -102,7 +107,7 @@ export function CollectorDashboard() {
 
   useEffect(() => {
     // eslint-disable-next-line
-    fetchCollectors();
+    fetchData();
   }, []);
 
   const total = collectors.length;
@@ -149,15 +154,15 @@ export function CollectorDashboard() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Active Collectors</h2>
-        <button onClick={fetchCollectors} style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>[ REFRESH ]</button>
+        <button onClick={fetchData} style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>[ REFRESH ]</button>
       </div>
 
       {collectors.length === 0 ? (
-        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border-subtle)', borderRadius: '4px' }}>
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border-subtle)', borderRadius: '4px', marginBottom: '48px' }}>
           No collectors registered. Configure a Data Contract to begin.
         </div>
       ) : (
-        <div className="table-container">
+        <div className="table-container" style={{ marginBottom: '48px' }}>
           <table>
             <thead>
               <tr>
@@ -165,6 +170,7 @@ export function CollectorDashboard() {
                 <th>Target Identifier</th>
                 <th>State & Health</th>
                 <th>Last Updated</th>
+                <th>Intelligence</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -180,7 +186,51 @@ export function CollectorDashboard() {
                     {new Date(collector.updated_at).toLocaleString()}
                   </td>
                   <td>
+                    <a href={`/collectors/${collector.id}`} style={{ fontSize: '0.875rem', color: 'var(--accent-cyan)', textDecoration: 'none' }}>VIEW CI →</a>
+                  </td>
+                  <td>
                     <RunAction collectorId={collector.id} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Incident Response</h2>
+      </div>
+
+      {incidents.length === 0 ? (
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border-subtle)', borderRadius: '4px' }}>
+          No active incidents.
+        </div>
+      ) : (
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Incident ID</th>
+                <th>Collector ID</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {incidents.map(incident => (
+                <tr key={incident.id}>
+                  <td className="mono" style={{ color: 'var(--text-secondary)' }}>{incident.id}</td>
+                  <td className="mono">{incident.collector_id}</td>
+                  <td>
+                    <HealthBadge state={incident.status} score={null} />
+                  </td>
+                  <td className="mono" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    {new Date(incident.created_at).toLocaleString()}
+                  </td>
+                  <td>
+                    <a href={`/incidents/${incident.id}`} style={{ fontSize: '0.875rem', color: 'var(--accent-cyan)', textDecoration: 'none' }}>VIEW DRIFT →</a>
                   </td>
                 </tr>
               ))}

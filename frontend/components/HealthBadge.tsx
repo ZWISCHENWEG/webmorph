@@ -1,6 +1,6 @@
 import React from 'react';
 
-type HealthState = 'HEALTHY' | 'DEGRADED' | 'DRIFT_DETECTED' | 'DIAGNOSING' | 'HEAL_PROPOSED' | 'AWAITING_APPROVAL' | 'APPROVED' | 'REJECTED';
+type HealthState = 'HEALTHY' | 'DEGRADED' | 'DRIFT_DETECTED' | 'DIAGNOSING' | 'HEAL_PROPOSED' | 'AWAITING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'HEALING' | 'VERIFYING' | 'RECOVERED' | 'MANUAL_INTERVENTION';
 
 interface HealthBadgeProps {
   state: HealthState;
@@ -12,14 +12,18 @@ export function HealthBadge({ state, score }: HealthBadgeProps) {
     switch (s) {
       case 'HEALTHY':
       case 'APPROVED':
+      case 'RECOVERED':
         return { color: 'var(--accent-cyan)', borderColor: 'rgba(0, 240, 255, 0.2)', bg: 'rgba(0, 240, 255, 0.05)' };
       case 'DEGRADED':
       case 'DIAGNOSING':
       case 'AWAITING_APPROVAL':
+      case 'HEALING':
+      case 'VERIFYING':
         return { color: 'var(--accent-amber)', borderColor: 'rgba(255, 170, 0, 0.2)', bg: 'rgba(255, 170, 0, 0.05)' };
       case 'DRIFT_DETECTED':
       case 'REJECTED':
       case 'HEAL_PROPOSED':
+      case 'MANUAL_INTERVENTION':
         return { color: 'var(--accent-magenta)', borderColor: 'rgba(255, 0, 85, 0.2)', bg: 'rgba(255, 0, 85, 0.05)' };
       default:
         return { color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)', bg: 'transparent' };
