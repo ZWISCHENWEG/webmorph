@@ -37,9 +37,7 @@ class Collector(Base):
     bright_data_collector_id: Mapped[str] = mapped_column(
         String(64), nullable=False, unique=True, index=True
     )
-    current_contract_version: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=1
-    )
+    current_contract_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     state: Mapped[CollectorState] = mapped_column(
         Enum(CollectorState), nullable=False, default=CollectorState.HEALTHY
     )

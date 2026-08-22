@@ -35,17 +35,16 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    operation_type: Mapped[JobOperationType] = mapped_column(
-        Enum(JobOperationType), nullable=False
-    )
+    operation_type: Mapped[JobOperationType] = mapped_column(Enum(JobOperationType), nullable=False)
     status: Mapped[JobStatus] = mapped_column(
         Enum(JobStatus), nullable=False, default=JobStatus.QUEUED, index=True
     )
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     related_entity_ref: Mapped[str | None] = mapped_column(
-        String(255), nullable=True,
-        comment="Reference to the related entity, e.g. 'collector:1' or 'incident:5'"
+        String(255),
+        nullable=True,
+        comment="Reference to the related entity, e.g. 'collector:1' or 'incident:5'",
     )
     error_message: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     created_at: Mapped[str] = mapped_column(

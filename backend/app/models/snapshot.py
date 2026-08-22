@@ -31,16 +31,17 @@ class Snapshot(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     bright_data_snapshot_id: Mapped[str] = mapped_column(
-        String(128), nullable=False, unique=True, index=True,
+        String(128),
+        nullable=False,
+        unique=True,
+        index=True,
         comment="Bright Data execution result identifier (j_xxxxx). "
-                "Unique constraint prevents duplicate snapshots."
+        "Unique constraint prevents duplicate snapshots.",
     )
     collector_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("collectors.id"), nullable=False, index=True
     )
-    run_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("runs.id"), nullable=False, index=True
-    )
+    run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False, index=True)
     contract_version: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Raw payload preserved for provenance/auditability

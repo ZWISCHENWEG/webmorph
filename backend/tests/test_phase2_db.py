@@ -29,7 +29,7 @@ async def test_collector_and_snapshot_creation(db_session):
         normalized_payload={},
         record_count=10,
         validation_state=ValidationState.PENDING,
-        health_score=100
+        health_score=100,
     )
     db_session.add(snapshot)
     await db_session.commit()
@@ -46,7 +46,7 @@ async def test_collector_and_snapshot_creation(db_session):
         normalized_payload={},
         record_count=10,
         validation_state=ValidationState.PENDING,
-        health_score=100
+        health_score=100,
     )
     db_session.add(snapshot2)
     with pytest.raises(exc.IntegrityError):
@@ -65,26 +65,18 @@ async def test_healing_event_unique_active_constraint(db_session):
     await db_session.commit()
 
     incident = Incident(
-        collector_id=collector.id, 
-        trigger_run_id=run.id,
-        status=IncidentStatus.DRIFT_DETECTED
+        collector_id=collector.id, trigger_run_id=run.id, status=IncidentStatus.DRIFT_DETECTED
     )
     db_session.add(incident)
     await db_session.commit()
 
-    h1 = HealingEvent(
-        incident_id=incident.id,
-        status=HealingStatus.PROPOSED
-    )
+    h1 = HealingEvent(incident_id=incident.id, status=HealingStatus.PROPOSED)
     db_session.add(h1)
     await db_session.commit()
 
     inc_id = incident.id
 
-    h2 = HealingEvent(
-        incident_id=inc_id,
-        status=HealingStatus.AWAITING_APPROVAL
-    )
+    h2 = HealingEvent(incident_id=inc_id, status=HealingStatus.AWAITING_APPROVAL)
     db_session.add(h2)
     with pytest.raises(exc.IntegrityError):
         await db_session.commit()
@@ -95,10 +87,7 @@ async def test_healing_event_unique_active_constraint(db_session):
     db_session.add(h1)
     await db_session.commit()
 
-    h3 = HealingEvent(
-        incident_id=inc_id,
-        status=HealingStatus.PROPOSED
-    )
+    h3 = HealingEvent(incident_id=inc_id, status=HealingStatus.PROPOSED)
     db_session.add(h3)
     await db_session.commit()
     assert h3.id is not None

@@ -19,16 +19,19 @@ class AuditEvent(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     event_type: Mapped[str] = mapped_column(
-        String(128), nullable=False, index=True,
-        comment="E.g. COLLECTOR_STATE_CHANGED, INCIDENT_CREATED, HEAL_APPROVED, RUN_COMPLETED"
+        String(128),
+        nullable=False,
+        index=True,
+        comment="E.g. COLLECTOR_STATE_CHANGED, INCIDENT_CREATED, HEAL_APPROVED, RUN_COMPLETED",
     )
     related_entity_ref: Mapped[str] = mapped_column(
-        String(255), nullable=False,
-        comment="Reference like 'collector:1', 'incident:3', 'run:12'"
+        String(255), nullable=False, comment="Reference like 'collector:1', 'incident:3', 'run:12'"
     )
     actor_source: Mapped[str] = mapped_column(
-        String(128), nullable=False, default="system",
-        comment="Who/what triggered the event: 'system', 'operator', 'bright_data'"
+        String(128),
+        nullable=False,
+        default="system",
+        comment="Who/what triggered the event: 'system', 'operator', 'bright_data'",
     )
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[str] = mapped_column(

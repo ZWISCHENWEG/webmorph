@@ -35,9 +35,7 @@ class Incident(Base):
     collector_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("collectors.id"), nullable=False, index=True
     )
-    trigger_run_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("runs.id"), nullable=False
-    )
+    trigger_run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
     status: Mapped[IncidentStatus] = mapped_column(
         Enum(IncidentStatus), nullable=False, default=IncidentStatus.DRIFT_DETECTED, index=True
     )
@@ -49,9 +47,7 @@ class Incident(Base):
     updated_at: Mapped[str] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
-    resolved_at: Mapped[str | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    resolved_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     collector: Mapped["Collector"] = relationship(back_populates="incidents")  # type: ignore[name-defined] # noqa: F821

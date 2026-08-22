@@ -5,20 +5,22 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 class VersionRecord(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     version_range: str = Field(min_length=1)
     support_status: str = Field(min_length=1)
     status_class: Literal["y", "a", "n"]
 
+
 class BrowserRecord(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     browser_name: str = Field(min_length=1)
     versions: list[VersionRecord] = Field(min_length=1)
 
+
 class CanIUseFeature(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    
+
     feature_name: str = Field(min_length=1)
     specification_url: HttpUrl
     specification_status: str = Field(min_length=1)

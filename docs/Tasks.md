@@ -28,11 +28,12 @@
 2. Implement exact Health Formula (Completeness, Schema Validity, Record Stability edge cases).
 3. Implement `HEALTHY` (90-100), `DEGRADED` (80-89.99), and `DRIFT_DETECTED` (<80) evaluations and incident triggers.
 
-## Phase 4: Bright Data CLI Integration (Subprocess Security)
-1. Implement `BrightDataService` wrapping the CLI safely (`shell=False`, array argv, timeouts, bounded output).
-2. Implement `BrightDataResultNormalizer` to separate internal models from raw CLI JSON.
-3. Implement async execution: `POST /api/collectors/{id}/runs` creates a Job (`QUEUED`) and returns `202 Accepted`.
-4. Background worker executes `bdata scraper run <collector_id> <url>`, normalizes JSON, updates Snapshot `j_xxxxx`.
+## PHASE 4 — FROZEN
+- implementation complete
+- strict audit passed
+- real Bright Data integration verified
+- tests passing
+- no Phase 5 implementation
 
 ## Phase 5: Incident Management & Diagnosis
 1. Generate diagnostic report isolating failing fields.

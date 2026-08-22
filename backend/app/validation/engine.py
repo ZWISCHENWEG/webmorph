@@ -23,7 +23,7 @@ class ValidationResult:
         completeness_score: float,
         schema_validity_score: float,
         stability_score: float,
-        errors: list[str]
+        errors: list[str],
     ):
         self.is_valid = is_valid
         self.normalized_payload = normalized_payload
@@ -44,26 +44,26 @@ def process_payload(raw_payload: Any, healthy_baseline_counts: list[int]) -> Val
     """
     normalized_records = normalize_payload(raw_payload)
     total_records = len(normalized_records)
-    
+
     valid_records = 0
     errors = []
-    
+
     for i, record in enumerate(normalized_records):
         try:
             CanIUseFeature.model_validate(record)
             valid_records += 1
         except ValidationError as e:
             errors.append(f"Record {i} validation failed: {str(e)}")
-            
+
     is_valid = (valid_records == total_records) and (total_records > 0)
-    
+
     # Calculate components
     completeness = calculate_completeness(normalized_records)
     schema_validity = calculate_schema_validity(valid_records, total_records)
     stability = calculate_record_stability(total_records, healthy_baseline_counts)
-    
+
     health_score = calculate_health_score(completeness, schema_validity, stability)
-    
+
     # State mapping based on Technical-Spec.md
     if health_score >= 90:
         state = ValidationState.HEALTHY
@@ -71,7 +71,7 @@ def process_payload(raw_payload: Any, healthy_baseline_counts: list[int]) -> Val
         state = ValidationState.DEGRADED
     else:
         state = ValidationState.DRIFT_DETECTED
-        
+
     return ValidationResult(
         is_valid=is_valid,
         normalized_payload=normalized_records,
@@ -80,5 +80,5 @@ def process_payload(raw_payload: Any, healthy_baseline_counts: list[int]) -> Val
         completeness_score=completeness,
         schema_validity_score=schema_validity,
         stability_score=stability,
-        errors=errors
+        errors=errors,
     )

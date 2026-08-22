@@ -29,9 +29,7 @@ class Run(Base):
         Integer, ForeignKey("collectors.id"), nullable=False, index=True
     )
     contract_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    job_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("jobs.id"), nullable=True
-    )
+    job_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("jobs.id"), nullable=True)
     status: Mapped[RunStatus] = mapped_column(
         Enum(RunStatus), nullable=False, default=RunStatus.PENDING, index=True
     )

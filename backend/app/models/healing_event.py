@@ -30,6 +30,7 @@ class ApprovalStatus(enum.StrEnum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
 
+
 class HealingEvent(Base):
     __tablename__ = "healing_events"
     __table_args__ = (
@@ -41,7 +42,6 @@ class HealingEvent(Base):
             postgresql_where=text("status NOT IN ('RECOVERED', 'REJECTED', 'FAILED')"),
         ),
     )
-
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     incident_id: Mapped[int] = mapped_column(

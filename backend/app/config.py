@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     bright_data_target_url: str = ""
 
     # CLI
-    bdata_cli_path: str = "bdata"
+    bdata_cli_path: str = "npx -y -p @brightdata/cli bdata"
     bdata_cli_timeout_seconds: int = 120
     bdata_cli_max_output_bytes: int = 5_242_880  # 5MB
 

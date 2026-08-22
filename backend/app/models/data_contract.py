@@ -23,9 +23,7 @@ class DataContract(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    collector_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("collectors.id"), nullable=False
-    )
+    collector_id: Mapped[int] = mapped_column(Integer, ForeignKey("collectors.id"), nullable=False)
     schema_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     status: Mapped[ContractStatus] = mapped_column(
         Enum(ContractStatus), nullable=False, default=ContractStatus.ACTIVE
