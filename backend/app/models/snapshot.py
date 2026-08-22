@@ -20,7 +20,7 @@ from app.models.base import Base
 
 class ValidationState(enum.StrEnum):
     PENDING = "PENDING"
-    VALID = "VALID"
+    HEALTHY = "HEALTHY"
     INVALID = "INVALID"
     DEGRADED = "DEGRADED"
     DRIFT_DETECTED = "DRIFT_DETECTED"
