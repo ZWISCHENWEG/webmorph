@@ -55,19 +55,28 @@ class DiagnosisService:
             f"incident:{incident.id}",
             metadata={"new_state": IncidentStatus.DIAGNOSING.value},
         )
+        # Flush to persist state change before continuing
         await session.flush()
 
+        # Guard: Ensure we are in DIAGNOSING before moving to HEAL_PROPOSED
+        if incident.status != IncidentStatus.DIAGNOSING:
+            raise ValueError(f"Incident {incident.id} is not in DIAGNOSING state.")
+
         # Deterministic Diagnosis
-        # We extract exactly what failed from the snapshot's validation_details
         details = snapshot.validation_details or {}
-        failing_fields = details.get("failed_fields", [])
+        missing_fields = details.get("missing_fields", [])
+        schema_errors = details.get("schema_errors", [])
+        stability_issues = details.get("stability_issues", [])
+
         completeness_score = snapshot.completeness_score or 0.0
         schema_validity_score = snapshot.schema_validity_score or 0.0
         stability_score = snapshot.stability_score or 0.0
 
         diagnosis_payload = {
             "root_cause": "DRIFT_DETECTED",
-            "failing_fields": failing_fields,
+            "missing_fields": missing_fields,
+            "schema_errors": schema_errors,
+            "stability_issues": stability_issues,
             "health_breakdown": {
                 "completeness": completeness_score,
                 "schema_validity": schema_validity_score,
@@ -90,7 +99,7 @@ class DiagnosisService:
         )
         await session.flush()
 
-        # Create HealingEvent
+        # Create HealingEvent in PROPOSED state
         healing_event = HealingEvent(
             incident_id=incident.id,
             status=HealingStatus.PROPOSED,
@@ -100,9 +109,21 @@ class DiagnosisService:
         session.add(healing_event)
         await session.flush()
 
-        # Transition to AWAITING_APPROVAL
+        await AuditEventService.log_event(
+            session,
+            "HEALING_EVENT_CREATED",
+            f"healing_event:{healing_event.id}",
+            metadata={"incident_id": incident.id, "status": HealingStatus.PROPOSED.value},
+        )
+
+        # Guard: Ensure Incident is HEAL_PROPOSED
+        if incident.status != IncidentStatus.HEAL_PROPOSED:
+            raise ValueError(f"Incident {incident.id} is not in HEAL_PROPOSED state.")
+
+        # Transition Incident and HealingEvent to AWAITING_APPROVAL
         incident.status = IncidentStatus.AWAITING_APPROVAL
         healing_event.status = HealingStatus.AWAITING_APPROVAL
+
         await AuditEventService.log_event(
             session,
             "INCIDENT_STATE_CHANGED",
@@ -111,10 +132,11 @@ class DiagnosisService:
         )
         await AuditEventService.log_event(
             session,
-            "HEALING_EVENT_CREATED",
+            "HEALING_EVENT_STATE_CHANGED",
             f"healing_event:{healing_event.id}",
-            metadata={"incident_id": incident.id},
+            metadata={"new_state": HealingStatus.AWAITING_APPROVAL.value},
         )
+        await session.flush()
 
         return incident
 
@@ -201,10 +223,17 @@ class IncidentService:
 
         await AuditEventService.log_event(
             session,
-            "HEAL_APPROVED" if approved else "HEAL_REJECTED",
+            "INCIDENT_STATE_CHANGED",
             f"incident:{incident.id}",
             actor_source="operator",
-            metadata={"healing_event_id": healing_event.id},
+            metadata={"new_state": incident.status.value, "healing_event_id": healing_event.id},
+        )
+        await AuditEventService.log_event(
+            session,
+            "HEALING_EVENT_STATE_CHANGED",
+            f"healing_event:{healing_event.id}",
+            actor_source="operator",
+            metadata={"new_state": healing_event.status.value},
         )
 
         await session.flush()
