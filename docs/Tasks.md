@@ -40,9 +40,11 @@
 2. Trigger incident flow only when `health < 80` (`DRIFT_DETECTED` -> `DIAGNOSING`). DEGRADED is a warning state that does not automatically create an incident.
 3. Fire audit events.
 
-## Phase 6: Core API Endpoints
-1. Expose `GET /api/collectors`, `GET /api/incidents`, etc.
-2. Implement strict normalized error responses. Redact internal stacks and credentials.
+## PHASE 6 — FROZEN
+- implementation complete
+- strict audit passed
+- tests passing
+- no Phase 7 implementation
 
 ## Phase 7: Frontend Initialization (Next.js)
 1. Initialize Next.js project.
