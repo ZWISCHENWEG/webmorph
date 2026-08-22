@@ -89,53 +89,7 @@ class DiagnosisService:
 
         incident.diagnosis = diagnosis_payload
 
-        # Transition to HEAL_PROPOSED
-        incident.status = IncidentStatus.HEAL_PROPOSED
-        await AuditEventService.log_event(
-            session,
-            "INCIDENT_STATE_CHANGED",
-            f"incident:{incident.id}",
-            metadata={"new_state": IncidentStatus.HEAL_PROPOSED.value},
-        )
-        await session.flush()
-
-        # Create HealingEvent in PROPOSED state
-        healing_event = HealingEvent(
-            incident_id=incident.id,
-            status=HealingStatus.PROPOSED,
-            approval_status=ApprovalStatus.PENDING,
-            proposal={"type": "human_assisted_heal", "diagnosis": diagnosis_payload},
-        )
-        session.add(healing_event)
-        await session.flush()
-
-        await AuditEventService.log_event(
-            session,
-            "HEALING_EVENT_CREATED",
-            f"healing_event:{healing_event.id}",
-            metadata={"incident_id": incident.id, "status": HealingStatus.PROPOSED.value},
-        )
-
-        # Guard: Ensure Incident is HEAL_PROPOSED
-        if incident.status != IncidentStatus.HEAL_PROPOSED:
-            raise ValueError(f"Incident {incident.id} is not in HEAL_PROPOSED state.")
-
-        # Transition Incident and HealingEvent to AWAITING_APPROVAL
-        incident.status = IncidentStatus.AWAITING_APPROVAL
-        healing_event.status = HealingStatus.AWAITING_APPROVAL
-
-        await AuditEventService.log_event(
-            session,
-            "INCIDENT_STATE_CHANGED",
-            f"incident:{incident.id}",
-            metadata={"new_state": IncidentStatus.AWAITING_APPROVAL.value},
-        )
-        await AuditEventService.log_event(
-            session,
-            "HEALING_EVENT_STATE_CHANGED",
-            f"healing_event:{healing_event.id}",
-            metadata={"new_state": HealingStatus.AWAITING_APPROVAL.value},
-        )
+        # Stop at DIAGNOSING per Phase 5 scope
         await session.flush()
 
         return incident

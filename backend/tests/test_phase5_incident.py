@@ -97,8 +97,8 @@ async def test_incident_trigger_drift_detected(db_session: AsyncSession, collect
     assert incident.collector_id == collector.id
     assert incident.trigger_run_id == run.id
 
-    # It should have passed through DIAGNOSING, HEAL_PROPOSED, to AWAITING_APPROVAL
-    assert incident.status == IncidentStatus.AWAITING_APPROVAL
+    # It should transition to DIAGNOSING and stop there
+    assert incident.status == IncidentStatus.DIAGNOSING
 
     # Verify diagnosis provenance
     assert incident.diagnosis is not None
@@ -110,17 +110,13 @@ async def test_incident_trigger_drift_detected(db_session: AsyncSession, collect
     assert incident.diagnosis["health_breakdown"]["completeness"] == 50.0
     assert incident.diagnosis["root_cause"] == "DRIFT_DETECTED"
 
-    # Verify HealingEvent
+    # Verify HealingEvent is NOT created
     stmt = select(HealingEvent).where(HealingEvent.incident_id == incident.id)
     result = await db_session.execute(stmt)
-    healing_event = result.scalar_one()
+    healing_event = result.scalar_one_or_none()
+    assert healing_event is None
 
-    assert healing_event.status == HealingStatus.AWAITING_APPROVAL
-    assert healing_event.approval_status == ApprovalStatus.PENDING
-
-    # Verify AuditEvents
-    # (INCIDENT_CREATED, INCIDENT_STATE_CHANGED x4,
-    # HEALING_EVENT_CREATED, HEALING_EVENT_STATE_CHANGED)
+    # Verify AuditEvents (INCIDENT_CREATED, INCIDENT_STATE_CHANGED for DIAGNOSING)
     stmt_audit = select(AuditEvent).where(
         AuditEvent.related_entity_ref == f"incident:{incident.id}"
     )
@@ -129,23 +125,28 @@ async def test_incident_trigger_drift_detected(db_session: AsyncSession, collect
     event_types = [a.event_type for a in audits]
     assert "INCIDENT_CREATED" in event_types
     assert "INCIDENT_STATE_CHANGED" in event_types
-    assert len([e for e in event_types if e == "INCIDENT_STATE_CHANGED"]) == 3
+    assert len([e for e in event_types if e == "INCIDENT_STATE_CHANGED"]) == 1
 
 
 @pytest.mark.asyncio
 async def test_human_approval_success(db_session: AsyncSession, collector, run):
     """Test the approval path correctly updates the incident and healing event."""
-    snapshot = Snapshot(
-        bright_data_snapshot_id="j_drift_appr",
+    incident = Incident(
         collector_id=collector.id,
-        run_id=run.id,
-        contract_version=1,
-        health_score=50.0,
+        trigger_run_id=run.id,
+        status=IncidentStatus.AWAITING_APPROVAL,
     )
-    db_session.add(snapshot)
+    db_session.add(incident)
     await db_session.flush()
 
-    incident = await IncidentService.evaluate_snapshot(db_session, snapshot)
+    he_fixture = HealingEvent(
+        incident_id=incident.id,
+        status=HealingStatus.AWAITING_APPROVAL,
+        approval_status=ApprovalStatus.PENDING,
+        proposal={"type": "human_assisted_heal"},
+    )
+    db_session.add(he_fixture)
+    await db_session.flush()
 
     he = await IncidentService.process_human_approval(db_session, incident.id, approved=True)
 
@@ -164,30 +165,14 @@ async def test_human_approval_success(db_session: AsyncSession, collector, run):
     )
     audits_all = (await db_session.execute(stmt_audit_all)).scalars().all()
 
-    # Expected chronological flow:
-    # 1. INCIDENT_CREATED (evaluate_snapshot)
-    # 2. INCIDENT_STATE_CHANGED -> DIAGNOSING (diagnose_incident)
-    # 3. INCIDENT_STATE_CHANGED -> HEAL_PROPOSED (diagnose_incident)
-    # 4. HEALING_EVENT_CREATED -> PROPOSED (diagnose_incident)
-    # 5. INCIDENT_STATE_CHANGED -> AWAITING_APPROVAL (diagnose_incident)
-    # 6. HEALING_EVENT_STATE_CHANGED -> AWAITING_APPROVAL (diagnose_incident)
-    # 7. INCIDENT_STATE_CHANGED -> APPROVED (process_human_approval)
-    # 8. HEALING_EVENT_STATE_CHANGED -> APPROVED (process_human_approval)
-
     event_list = [
         (a.event_type, a.metadata_json.get("new_state", a.metadata_json.get("status")))
         for a in audits_all
         if a.metadata_json
     ]
 
-    assert event_list[0][0] == "INCIDENT_CREATED"
-    assert event_list[1] == ("INCIDENT_STATE_CHANGED", IncidentStatus.DIAGNOSING.value)
-    assert event_list[2] == ("INCIDENT_STATE_CHANGED", IncidentStatus.HEAL_PROPOSED.value)
-    assert event_list[3] == ("HEALING_EVENT_CREATED", HealingStatus.PROPOSED.value)
-    assert event_list[4] == ("INCIDENT_STATE_CHANGED", IncidentStatus.AWAITING_APPROVAL.value)
-    assert event_list[5] == ("HEALING_EVENT_STATE_CHANGED", HealingStatus.AWAITING_APPROVAL.value)
-    assert event_list[6] == ("INCIDENT_STATE_CHANGED", IncidentStatus.APPROVED.value)
-    assert event_list[7] == ("HEALING_EVENT_STATE_CHANGED", HealingStatus.APPROVED.value)
+    assert event_list[-2] == ("INCIDENT_STATE_CHANGED", IncidentStatus.APPROVED.value)
+    assert event_list[-1] == ("HEALING_EVENT_STATE_CHANGED", HealingStatus.APPROVED.value)
 
     # Check actor source for approval
     assert audits_all[-1].actor_source == "operator"
@@ -197,17 +182,21 @@ async def test_human_approval_success(db_session: AsyncSession, collector, run):
 @pytest.mark.asyncio
 async def test_human_approval_rejection(db_session: AsyncSession, collector, run):
     """Test the rejection path correctly updates the incident and healing event."""
-    snapshot = Snapshot(
-        bright_data_snapshot_id="j_drift_rej",
+    incident = Incident(
         collector_id=collector.id,
-        run_id=run.id,
-        contract_version=1,
-        health_score=50.0,
+        trigger_run_id=run.id,
+        status=IncidentStatus.AWAITING_APPROVAL,
     )
-    db_session.add(snapshot)
+    db_session.add(incident)
     await db_session.flush()
 
-    incident = await IncidentService.evaluate_snapshot(db_session, snapshot)
+    he_fixture = HealingEvent(
+        incident_id=incident.id,
+        status=HealingStatus.AWAITING_APPROVAL,
+        approval_status=ApprovalStatus.PENDING,
+    )
+    db_session.add(he_fixture)
+    await db_session.flush()
 
     he = await IncidentService.process_human_approval(db_session, incident.id, approved=False)
 
@@ -281,28 +270,27 @@ async def test_transaction_rollback_preserves_state(db_session: AsyncSession, co
     db_session.add(snapshot)
     await db_session.flush()
 
-    # We will mock log_event to fail on the third call (which is HEAL_PROPOSED transition)
-    # The first call is INCIDENT_STATE_CHANGED (DIAGNOSING)
-    # By failing on the third call, we prove partial DB state is rolled back.
+    # We will mock log_event to fail on the first call (INCIDENT_STATE_CHANGED (DIAGNOSING))
+    # By failing on this call, we prove partial DB state is rolled back.
     call_count = 0
     original_log_event = AuditEventService.log_event
 
     async def mock_log_event(*args, **kwargs):
         nonlocal call_count
         call_count += 1
-        if call_count == 2:
+        if call_count == 1:
             raise RuntimeError("Injected database failure")
         return await original_log_event(*args, **kwargs)
 
     incident_id = incident.id
-    
+
     with (
         patch.object(AuditEventService, "log_event", side_effect=mock_log_event),
         pytest.raises(RuntimeError, match="Injected database failure"),
     ):
         async with db_session.begin_nested():
             await DiagnosisService.diagnose_incident(db_session, incident, snapshot)
-    
+
     # Expunge to ensure we read from DB, not the session identity map
     db_session.expunge_all()
 
@@ -318,7 +306,7 @@ async def test_transaction_rollback_preserves_state(db_session: AsyncSession, co
     stmt_he = select(HealingEvent).where(HealingEvent.incident_id == incident_id)
     he = (await db_session.execute(stmt_he)).scalar_one_or_none()
     assert he is None
-    
+
     # Check that NO AuditEvents for DIAGNOSING remain
     stmt_aud = select(AuditEvent).where(AuditEvent.related_entity_ref == f"incident:{incident_id}")
     auds = (await db_session.execute(stmt_aud)).scalars().all()
