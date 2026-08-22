@@ -74,7 +74,7 @@
 3. Polish visual design (geometry, layering, halftone). Ensure no characters/fan art.
 
 ## Phase 17: Demo Mode
-1. Implement `DEMO_MODE` flag to mutate validated output deterministically for drift detection testing.
+1. Implement `DEMO_MODE` flag to mutate collected output deterministically for drift detection testing by removing the `browser_support` key from the first record of a real Bright Data payload. The mutation occurs after successful real Bright Data collection and before normalization/validation. DEMO_MODE must never fake Bright Data success or snapshot IDs.
 2. Ensure `DEMO_MODE` does NOT fake Bright Data successes or IDs.
 
 ## Phase 18: End-to-End Real Integration Testing
