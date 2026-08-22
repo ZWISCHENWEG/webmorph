@@ -226,6 +226,7 @@ async def approve_incident(
         operation_type=JobOperationType.HEAL_APPROVE,
         related_entity_ref=f"incident:{incident_id}",
         status=JobStatus.QUEUED,
+        max_attempts=4,
     )
     session.add(job)
     await session.commit()

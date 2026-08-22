@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from sqlalchemy import select
@@ -57,34 +58,50 @@ async def process_collection_job(job_id: int):
         await session.commit()
         await session.refresh(run)
 
-        # Execute Bright Data CLI securely
-        try:
-            target_url = settings.bright_data_target_url
-            snapshot_id, raw_payload = await BrightDataService.run_collector(
-                collector.bright_data_collector_id, target_url
-            )
-            run.status = RunStatus.SUCCEEDED
-        except BrightDataServiceError as e:
-            run.status = RunStatus.FAILED
-            job.status = JobStatus.FAILED
-            job.error_message = str(e)
+        # Execute Bright Data CLI securely with retries
+        operation_attempts = 0
+        target_url = settings.bright_data_target_url
 
-            # Audit event for failure
-            audit = AuditEvent(
-                event_type="RUN_FAILED",
-                related_entity_ref=f"run:{run.id}",
-                actor_source="SYSTEM",
-                metadata_json={"error": str(e), "code": e.code},
-            )
-            session.add(audit)
+        while True:
+            operation_attempts += 1
+            job.attempt_count += 1
             await session.commit()
-            return
-        except Exception as e:
-            run.status = RunStatus.FAILED
-            job.status = JobStatus.FAILED
-            job.error_message = f"Unexpected error: {str(e)}"
-            await session.commit()
-            return
+
+            try:
+                snapshot_id, raw_payload = await BrightDataService.run_collector(
+                    collector.bright_data_collector_id, target_url
+                )
+                run.status = RunStatus.SUCCEEDED
+                break  # Success
+            except BrightDataServiceError as e:
+                if e.retryable and operation_attempts < 3:
+                    logger.warning(
+                        f"Retryable error running collector "
+                        f"(attempt {operation_attempts}/3): {str(e)}"
+                    )
+                    await asyncio.sleep(2 * (2 ** (operation_attempts - 1)))
+                    continue
+
+                run.status = RunStatus.FAILED
+                job.status = JobStatus.FAILED
+                job.error_message = str(e)
+
+                # Audit event for failure
+                audit = AuditEvent(
+                    event_type="RUN_FAILED",
+                    related_entity_ref=f"run:{run.id}",
+                    actor_source="SYSTEM",
+                    metadata_json={"error": str(e), "code": e.code},
+                )
+                session.add(audit)
+                await session.commit()
+                return
+            except Exception as e:
+                run.status = RunStatus.FAILED
+                job.status = JobStatus.FAILED
+                job.error_message = f"Unexpected error: {str(e)}"
+                await session.commit()
+                return
 
         # Get baselines for stability calculation
         baseline_stmt = (
@@ -110,7 +127,7 @@ async def process_collection_job(job_id: int):
             run_id=run.id,
             contract_version=collector.current_contract_version,
             raw_payload=raw_payload,
-            normalized_payload_ref="embedded",  # We'll store it on the model temporarily
+            normalized_payload=validation_result.normalized_payload,
             record_count=len(validation_result.normalized_payload),
             validation_state=validation_result.validation_state,
             health_score=validation_result.health_score,

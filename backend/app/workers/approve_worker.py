@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from sqlalchemy import select
@@ -114,6 +115,8 @@ async def process_approve_job(job_id: int):
         await session.commit()
 
         # Execute Bright Data Approval
+        job.attempt_count += 1
+        await session.commit()
         try:
             await BrightDataService.approve_heal(collector.bright_data_collector_id)
         except BrightDataServiceError as e:
@@ -186,66 +189,84 @@ async def process_approve_job(job_id: int):
         await session.commit()
 
         # Execute Verification Scrape
-        try:
-            target_url = settings.bright_data_target_url
-            snapshot_id, raw_payload = await BrightDataService.run_collector(
-                collector.bright_data_collector_id, target_url
-            )
-            run.status = RunStatus.SUCCEEDED
-        except BrightDataServiceError as e:
-            run.status = RunStatus.FAILED
-            await fail_incident(IncidentStatus.VERIFICATION_FAILED, HealingStatus.FAILED, str(e))
-            # Cascade
-            async with session.begin_nested():
-                incident.status = IncidentStatus.HEAL_FAILED
-                await AuditEventService.log_event(
-                    session,
-                    "INCIDENT_STATE_CHANGED",
-                    f"incident:{incident.id}",
-                    metadata={"new_state": IncidentStatus.HEAL_FAILED.value},
-                )
-            async with session.begin_nested():
-                incident.status = IncidentStatus.MANUAL_INTERVENTION
-                await AuditEventService.log_event(
-                    session,
-                    "INCIDENT_STATE_CHANGED",
-                    f"incident:{incident.id}",
-                    metadata={
-                        "new_state": IncidentStatus.MANUAL_INTERVENTION.value,
-                        "reason": "verification_run_failed",
-                    },
-                )
+        verification_attempts = 0
+        target_url = settings.bright_data_target_url
+
+        while True:
+            verification_attempts += 1
+            job.attempt_count += 1
             await session.commit()
-            return
-        except Exception as e:
-            run.status = RunStatus.FAILED
-            await fail_incident(
-                IncidentStatus.VERIFICATION_FAILED,
-                HealingStatus.FAILED,
-                f"Unexpected error: {str(e)}",
-            )
-            # Cascade
-            async with session.begin_nested():
-                incident.status = IncidentStatus.HEAL_FAILED
-                await AuditEventService.log_event(
-                    session,
-                    "INCIDENT_STATE_CHANGED",
-                    f"incident:{incident.id}",
-                    metadata={"new_state": IncidentStatus.HEAL_FAILED.value},
+
+            try:
+                snapshot_id, raw_payload = await BrightDataService.run_collector(
+                    collector.bright_data_collector_id, target_url
                 )
-            async with session.begin_nested():
-                incident.status = IncidentStatus.MANUAL_INTERVENTION
-                await AuditEventService.log_event(
-                    session,
-                    "INCIDENT_STATE_CHANGED",
-                    f"incident:{incident.id}",
-                    metadata={
-                        "new_state": IncidentStatus.MANUAL_INTERVENTION.value,
-                        "reason": "verification_run_failed",
-                    },
+                run.status = RunStatus.SUCCEEDED
+                break
+            except BrightDataServiceError as e:
+                if e.retryable and verification_attempts < 3:
+                    logger.warning(
+                        f"Retryable error running verification collector "
+                        f"(attempt {verification_attempts}/3): {str(e)}"
+                    )
+                    await asyncio.sleep(2 * (2 ** (verification_attempts - 1)))
+                    continue
+
+                run.status = RunStatus.FAILED
+                await fail_incident(
+                    IncidentStatus.VERIFICATION_FAILED, HealingStatus.FAILED, str(e)
                 )
-            await session.commit()
-            return
+                # Cascade
+                async with session.begin_nested():
+                    incident.status = IncidentStatus.HEAL_FAILED
+                    await AuditEventService.log_event(
+                        session,
+                        "INCIDENT_STATE_CHANGED",
+                        f"incident:{incident.id}",
+                        metadata={"new_state": IncidentStatus.HEAL_FAILED.value},
+                    )
+                async with session.begin_nested():
+                    incident.status = IncidentStatus.MANUAL_INTERVENTION
+                    await AuditEventService.log_event(
+                        session,
+                        "INCIDENT_STATE_CHANGED",
+                        f"incident:{incident.id}",
+                        metadata={
+                            "new_state": IncidentStatus.MANUAL_INTERVENTION.value,
+                            "reason": "verification_run_failed",
+                        },
+                    )
+                await session.commit()
+                return
+            except Exception as e:
+                run.status = RunStatus.FAILED
+                await fail_incident(
+                    IncidentStatus.VERIFICATION_FAILED,
+                    HealingStatus.FAILED,
+                    f"Unexpected error: {str(e)}",
+                )
+                # Cascade
+                async with session.begin_nested():
+                    incident.status = IncidentStatus.HEAL_FAILED
+                    await AuditEventService.log_event(
+                        session,
+                        "INCIDENT_STATE_CHANGED",
+                        f"incident:{incident.id}",
+                        metadata={"new_state": IncidentStatus.HEAL_FAILED.value},
+                    )
+                async with session.begin_nested():
+                    incident.status = IncidentStatus.MANUAL_INTERVENTION
+                    await AuditEventService.log_event(
+                        session,
+                        "INCIDENT_STATE_CHANGED",
+                        f"incident:{incident.id}",
+                        metadata={
+                            "new_state": IncidentStatus.MANUAL_INTERVENTION.value,
+                            "reason": "verification_run_failed",
+                        },
+                    )
+                await session.commit()
+                return
         
         # Calculate Stability
         baseline_stmt = (

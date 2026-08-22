@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from app.database import async_session_factory
@@ -76,20 +77,34 @@ async def process_heal_job(job_id: int):
             what_broke = "Unknown degradation."
 
         # Execute CLI
-        try:
-            proposal = await BrightDataService.request_heal(
-                collector.bright_data_collector_id, what_broke
-            )
-        except BrightDataServiceError as e:
-            job.status = JobStatus.FAILED
-            job.error_message = str(e)
+        operation_attempts = 0
+        while True:
+            operation_attempts += 1
+            job.attempt_count += 1
             await session.commit()
-            return
-        except Exception as e:
-            job.status = JobStatus.FAILED
-            job.error_message = f"Unexpected error: {str(e)}"
-            await session.commit()
-            return
+            try:
+                proposal = await BrightDataService.request_heal(
+                    collector.bright_data_collector_id, what_broke
+                )
+                break  # Success
+            except BrightDataServiceError as e:
+                if e.retryable and operation_attempts < 3:
+                    logger.warning(
+                        f"Retryable error requesting heal "
+                        f"(attempt {operation_attempts}/3): {str(e)}"
+                    )
+                    await asyncio.sleep(2 * (2 ** (operation_attempts - 1)))
+                    continue
+
+                job.status = JobStatus.FAILED
+                job.error_message = str(e)
+                await session.commit()
+                return
+            except Exception as e:
+                job.status = JobStatus.FAILED
+                job.error_message = f"Unexpected error: {str(e)}"
+                await session.commit()
+                return
 
         # Success - transition states
         try:

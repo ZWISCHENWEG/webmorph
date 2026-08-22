@@ -95,7 +95,32 @@ Validate `collector_id`. Bound captured output size (e.g. 5MB max). Redact secre
 
 ## Job Lifecycle
 `QUEUED` -> `RUNNING` -> `SUCCEEDED` | `FAILED` | `TIMED_OUT` | `CANCELLED`
-Jobs have retryable mechanisms with exponential backoff for network errors (max 3 attempts).
+
+**1. Operation-Level Retry Semantics:**
+- Every retryable Bright Data operation has a maximum of 3 physical executions.
+- Exponential backoff uses an operation-scoped counter: `delay = 2 * (2 ** (operation_attempts - 1))`.
+  - attempt 1 failure → 2 seconds
+  - attempt 2 failure → 4 seconds
+  - attempt 3 failure → fail
+- There must be no fourth execution of the same retryable operation.
+
+**2. Job-Level Execution Accounting:**
+- `Job.attempt_count` is the strict, monotonic total number of physical Bright Data subprocess executions performed by that Job.
+- It must never be reset.
+- For single-operation Jobs (e.g., collection, heal proposal request): `max_attempts = 3`.
+- For the composite approval + verification Job: `max_attempts = 4`. This consists of 1 non-retryable approval execution plus up to 3 retryable verification executions.
+
+**3. Approval Safety:**
+- `bdata scraper approve` executes exactly once.
+- It is never automatically retried, even if it fails with a timeout. A timeout produces an UNKNOWN MUTATION OUTCOME.
+- An approval failure follows the existing Phase 9 failure path, transitioning the Incident to `MANUAL_INTERVENTION`.
+
+**4. Verification:**
+- `bdata scraper run` is the retryable verification boundary.
+- It has its own operation-scoped counter (`verification_attempts`) for calculating exponential backoff.
+- It may execute at most 3 times.
+- Its backoff calculation must not use the global `Job.attempt_count`.
+
 
 ## Data Model (SQLAlchemy 2.x)
 - **DataContract:** `version`, `collector_id`, `schema_json`
