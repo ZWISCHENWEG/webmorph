@@ -2,13 +2,10 @@ import argparse
 import asyncio
 import os
 import sys
-from datetime import datetime, timezone
 
 # Ensure backend directory is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import delete
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_factory, engine
 from app.models.audit_event import AuditEvent
