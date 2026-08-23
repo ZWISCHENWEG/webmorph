@@ -246,3 +246,78 @@ async def approve_incident(
         status_code=status.HTTP_202_ACCEPTED,
         content={"job_id": f"job_{job.id}", "status": "QUEUED"},
     )
+
+
+@router.post(
+    "/{incident_id}/verify",
+    response_model=JobAcceptedResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def verify_incident(
+    incident_id: int,
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+):
+    """Resume verification for an incident already in VERIFYING state."""
+    stmt = select(Incident).where(Incident.id == incident_id)
+    incident = (await session.execute(stmt)).scalar_one_or_none()
+
+    if not incident:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "ERR_NOT_FOUND",
+                    "message": "Incident not found",
+                    "retryable": False,
+                }
+            },
+        )
+
+    if incident.status != IncidentStatus.VERIFYING:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "ERR_INVALID_STATE",
+                    "message": f"Incident must be VERIFYING, got {incident.status.value}",
+                    "retryable": False,
+                }
+            },
+        )
+
+    # Duplicate protection - Active Job
+    job_stmt = select(Job).where(
+        Job.related_entity_ref == f"incident:{incident_id}",
+        Job.operation_type == JobOperationType.VERIFICATION,
+        Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
+    )
+    existing_job = (await session.execute(job_stmt)).scalar_one_or_none()
+    if existing_job:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "code": "ERR_CONFLICT",
+                    "message": "Active verification job already exists for this incident",
+                    "retryable": False,
+                }
+            },
+        )
+
+    # Create Job for executing the verification
+    job = Job(
+        operation_type=JobOperationType.VERIFICATION,
+        related_entity_ref=f"incident:{incident_id}",
+        status=JobStatus.QUEUED,
+        max_attempts=4,
+    )
+    session.add(job)
+    await session.commit()
+    await session.refresh(job)
+
+    from app.workers.verify_worker import process_verify_job
+
+    background_tasks.add_task(process_verify_job, job.id)
+
+    return {"job_id": f"job_{job.id}", "status": "QUEUED"}

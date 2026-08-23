@@ -1,19 +1,14 @@
-import asyncio
 import logging
 
 from sqlalchemy import select
 
-from app.config import settings
 from app.database import async_session_factory
 from app.models.collector import Collector
 from app.models.healing_event import HealingEvent, HealingStatus
 from app.models.incident import Incident, IncidentStatus
 from app.models.job import Job, JobStatus
-from app.models.run import Run, RunStatus
-from app.models.snapshot import Snapshot, ValidationState
 from app.services.brightdata_service import BrightDataService, BrightDataServiceError
-from app.services.incident_service import AuditEventService
-from app.validation.engine import process_payload
+from app.services.incident_service import AuditEventService, IncidentService
 
 logger = logging.getLogger(__name__)
 
@@ -173,198 +168,10 @@ async def process_approve_job(job_id: int):
             )
         await session.commit()
 
-        # Create Verification Run
-        run = Run(
-            collector_id=collector.id,
-            contract_version=collector.current_contract_version,
-            job_id=job.id,
-            status=RunStatus.RUNNING,
+        await IncidentService.execute_verification(
+            session=session,
+            incident=incident,
+            healing_event=healing_event,
+            job=job,
+            collector=collector,
         )
-        session.add(run)
-        await session.commit()
-        await session.refresh(run)
-
-        # Link verification run to healing event
-        healing_event.verification_run_id = run.id
-        await session.commit()
-
-        # Execute Verification Scrape
-        verification_attempts = 0
-        target_url = settings.bright_data_target_url
-
-        while True:
-            verification_attempts += 1
-            job.attempt_count += 1
-            await session.commit()
-
-            try:
-                snapshot_id, raw_payload = await BrightDataService.run_collector(
-                    collector.bright_data_collector_id, target_url
-                )
-                run.status = RunStatus.SUCCEEDED
-                break
-            except BrightDataServiceError as e:
-                if e.retryable and verification_attempts < 3:
-                    logger.warning(
-                        f"Retryable error running verification collector "
-                        f"(attempt {verification_attempts}/3): {str(e)}"
-                    )
-                    await asyncio.sleep(2 * (2 ** (verification_attempts - 1)))
-                    continue
-
-                run.status = RunStatus.FAILED
-                await fail_incident(
-                    IncidentStatus.VERIFICATION_FAILED, HealingStatus.FAILED, str(e)
-                )
-                # Cascade
-                async with session.begin_nested():
-                    incident.status = IncidentStatus.HEAL_FAILED
-                    await AuditEventService.log_event(
-                        session,
-                        "INCIDENT_STATE_CHANGED",
-                        f"incident:{incident.id}",
-                        metadata={"new_state": IncidentStatus.HEAL_FAILED.value},
-                    )
-                async with session.begin_nested():
-                    incident.status = IncidentStatus.MANUAL_INTERVENTION
-                    await AuditEventService.log_event(
-                        session,
-                        "INCIDENT_STATE_CHANGED",
-                        f"incident:{incident.id}",
-                        metadata={
-                            "new_state": IncidentStatus.MANUAL_INTERVENTION.value,
-                            "reason": "verification_run_failed",
-                        },
-                    )
-                await session.commit()
-                return
-            except Exception as e:
-                run.status = RunStatus.FAILED
-                await fail_incident(
-                    IncidentStatus.VERIFICATION_FAILED,
-                    HealingStatus.FAILED,
-                    f"Unexpected error: {str(e)}",
-                )
-                # Cascade
-                async with session.begin_nested():
-                    incident.status = IncidentStatus.HEAL_FAILED
-                    await AuditEventService.log_event(
-                        session,
-                        "INCIDENT_STATE_CHANGED",
-                        f"incident:{incident.id}",
-                        metadata={"new_state": IncidentStatus.HEAL_FAILED.value},
-                    )
-                async with session.begin_nested():
-                    incident.status = IncidentStatus.MANUAL_INTERVENTION
-                    await AuditEventService.log_event(
-                        session,
-                        "INCIDENT_STATE_CHANGED",
-                        f"incident:{incident.id}",
-                        metadata={
-                            "new_state": IncidentStatus.MANUAL_INTERVENTION.value,
-                            "reason": "verification_run_failed",
-                        },
-                    )
-                await session.commit()
-                return
-
-        # Calculate Stability
-        baseline_stmt = (
-            select(Snapshot)
-            .where(
-                Snapshot.collector_id == collector.id,
-                Snapshot.validation_state == ValidationState.HEALTHY,
-            )
-            .order_by(Snapshot.created_at.desc())
-            .limit(5)
-        )
-        baseline_results = await session.scalars(baseline_stmt)
-        baseline_counts = [s.record_count for s in baseline_results]
-
-        validation_result = process_payload(raw_payload, baseline_counts)
-
-        snapshot = Snapshot(
-            bright_data_snapshot_id=snapshot_id,
-            collector_id=collector.id,
-            run_id=run.id,
-            contract_version=collector.current_contract_version,
-            raw_payload=raw_payload,
-            normalized_payload=validation_result.normalized_payload,
-            record_count=len(validation_result.normalized_payload),
-            validation_state=validation_result.validation_state,
-            health_score=validation_result.health_score,
-            completeness_score=validation_result.completeness_score,
-            schema_validity_score=validation_result.schema_validity_score,
-            stability_score=validation_result.stability_score,
-            validation_details=validation_result.model_dump(),
-        )
-        session.add(snapshot)
-        await session.flush()
-
-        # Strict Recovery Evaluation Criteria:
-        # - health_score >= RECOVERY_THRESHOLD (95)
-        # - field completeness >= REQUIRED_FIELD_RECOVERY_THRESHOLD (95) for ALL required fields
-        # - schema validity == 100
-        # - record stability >= 90
-        # - no critical validation errors (if any, already caught in schema validity)
-        # - Bright Data run completed successfully (already checked)
-
-        recovery_passed = True
-
-        if validation_result.health_score < 95.0:
-            recovery_passed = False
-
-        if validation_result.schema_validity_score < 100.0:
-            recovery_passed = False
-
-        if validation_result.stability_score < 90.0:
-            recovery_passed = False
-
-        if validation_result.completeness_score < 95.0:
-            recovery_passed = False
-
-        if recovery_passed:
-            async with session.begin_nested():
-                incident.status = IncidentStatus.RECOVERED
-                healing_event.status = HealingStatus.RECOVERED
-
-                await AuditEventService.log_event(
-                    session,
-                    "INCIDENT_STATE_CHANGED",
-                    f"incident:{incident.id}",
-                    metadata={"new_state": IncidentStatus.RECOVERED.value},
-                )
-                await AuditEventService.log_event(
-                    session,
-                    "HEALING_EVENT_STATE_CHANGED",
-                    f"healing_event:{healing_event.id}",
-                    metadata={"new_state": HealingStatus.RECOVERED.value},
-                )
-            job.status = JobStatus.SUCCEEDED
-            await session.commit()
-        else:
-            await fail_incident(
-                IncidentStatus.VERIFICATION_FAILED,
-                HealingStatus.FAILED,
-                "Recovery criteria not met",
-            )
-            async with session.begin_nested():
-                incident.status = IncidentStatus.HEAL_FAILED
-                await AuditEventService.log_event(
-                    session,
-                    "INCIDENT_STATE_CHANGED",
-                    f"incident:{incident.id}",
-                    metadata={"new_state": IncidentStatus.HEAL_FAILED.value},
-                )
-            async with session.begin_nested():
-                incident.status = IncidentStatus.MANUAL_INTERVENTION
-                await AuditEventService.log_event(
-                    session,
-                    "INCIDENT_STATE_CHANGED",
-                    f"incident:{incident.id}",
-                    metadata={
-                        "new_state": IncidentStatus.MANUAL_INTERVENTION.value,
-                        "reason": "criteria_failed",
-                    },
-                )
-            await session.commit()

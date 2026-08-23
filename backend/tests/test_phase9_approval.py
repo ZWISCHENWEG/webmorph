@@ -15,6 +15,7 @@ from app.models.healing_event import ApprovalStatus, HealingEvent, HealingStatus
 from app.models.incident import Incident, IncidentStatus
 from app.models.job import Job, JobOperationType, JobStatus
 from app.models.run import Run
+from app.models.snapshot import ValidationState
 from app.services.brightdata_service import BrightDataServiceError
 from app.workers.approve_worker import process_approve_job
 
@@ -157,7 +158,7 @@ async def test_worker_success(db_session: AsyncSession, incident_awaiting, mock_
         patch("app.services.brightdata_service.BrightDataService.approve_heal") as mock_approve,
         patch("app.services.brightdata_service.BrightDataService.run_collector") as mock_run,
         patch("app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory),
-        patch("app.workers.approve_worker.process_payload") as mock_process,
+        patch("app.services.incident_service.process_payload") as mock_process,
     ):
         # Setup mock process_payload return for strict recovery criteria
         mock_validation = MagicMock()
@@ -165,9 +166,10 @@ async def test_worker_success(db_session: AsyncSession, incident_awaiting, mock_
         mock_validation.schema_validity_score = 100.0
         mock_validation.stability_score = 95.0
         mock_validation.completeness_score = 100.0
-        mock_validation.validation_state = "HEALTHY"
+        mock_validation.validation_state = ValidationState.HEALTHY
         mock_validation.normalized_payload = [{"price": 10.0}]
-        mock_validation.model_dump.return_value = {}
+        mock_validation.is_valid = True
+        mock_validation.errors = []
         mock_process.return_value = mock_validation
 
         mock_run.return_value = ("snap_123", [{"price": 10.0}])
@@ -258,7 +260,7 @@ async def test_worker_criteria_failure(
         patch("app.services.brightdata_service.BrightDataService.approve_heal"),
         patch("app.services.brightdata_service.BrightDataService.run_collector") as mock_run,
         patch("app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory),
-        patch("app.workers.approve_worker.process_payload") as mock_process,
+        patch("app.services.incident_service.process_payload") as mock_process,
     ):
         # Setup mock process_payload return for failing recovery criteria (schema < 100)
         mock_validation = MagicMock()
@@ -266,9 +268,10 @@ async def test_worker_criteria_failure(
         mock_validation.schema_validity_score = 90.0  # Fails strict 100% check
         mock_validation.stability_score = 95.0
         mock_validation.completeness_score = 100.0
-        mock_validation.validation_state = "DEGRADED"
+        mock_validation.validation_state = ValidationState.DEGRADED
         mock_validation.normalized_payload = [{"price": 10.0}]
-        mock_validation.model_dump.return_value = {}
+        mock_validation.is_valid = True
+        mock_validation.errors = []
         mock_process.return_value = mock_validation
 
         mock_run.return_value = ("snap_123", [{"price": 10.0}])
@@ -282,3 +285,64 @@ async def test_worker_criteria_failure(
     assert job.status == JobStatus.FAILED
     assert incident_awaiting.status == IncidentStatus.MANUAL_INTERVENTION
     assert he.status == HealingStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_worker_validation_result_serialization(
+    db_session: AsyncSession, incident_awaiting, mock_session_factory
+):
+    """
+    Focused regression test proving that the verification path can serialize/use
+    ValidationResult without throwing AttributeError on model_dump().
+    """
+    job = Job(
+        operation_type=JobOperationType.HEAL_APPROVE,
+        status=JobStatus.QUEUED,
+        related_entity_ref=f"incident:{incident_awaiting.id}",
+    )
+    db_session.add(job)
+
+    # Needs to be APPROVED to run approve_worker
+    incident_awaiting.status = IncidentStatus.APPROVED
+
+    stmt = select(HealingEvent).where(HealingEvent.incident_id == incident_awaiting.id)
+    he = (await db_session.scalars(stmt)).first()
+    he.status = HealingStatus.APPROVED
+
+    await db_session.commit()
+    await db_session.refresh(job)
+
+    with (
+        patch("app.services.brightdata_service.BrightDataService.approve_heal"),
+        patch("app.services.brightdata_service.BrightDataService.run_collector") as mock_run,
+        patch("app.workers.approve_worker.async_session_factory", side_effect=mock_session_factory),
+        patch("app.services.incident_service.process_payload") as mock_process,
+    ):
+        mock_run.return_value = ("snap_12345", [{"price": 10.0}])
+
+        mock_validation = MagicMock()
+        mock_validation.health_score = 95.0
+        mock_validation.schema_validity_score = 100.0
+        mock_validation.stability_score = 95.0
+        mock_validation.completeness_score = 100.0
+        mock_validation.validation_state = ValidationState.HEALTHY
+        mock_validation.normalized_payload = [{"price": 10.0}]
+        mock_validation.is_valid = True
+        mock_validation.errors = []
+
+        mock_process.return_value = mock_validation
+
+        await process_approve_job(job.id)
+
+    # Job should succeed and Snapshot should exist
+    await db_session.refresh(job)
+    print(f"ERROR_MESSAGE: {job.error_message}")
+    assert job.status == JobStatus.SUCCEEDED
+
+    from app.models.snapshot import Snapshot
+
+    stmt = select(Snapshot).where(Snapshot.bright_data_snapshot_id == "snap_12345")
+    snapshot = (await db_session.scalars(stmt)).first()
+    assert snapshot is not None
+    assert isinstance(snapshot.validation_details, dict)
+    assert "validation_state" in snapshot.validation_details

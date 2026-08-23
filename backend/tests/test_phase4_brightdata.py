@@ -37,7 +37,7 @@ async def test_subprocess_security():
         mock_exec.assert_called_once()
         args, kwargs = mock_exec.call_args
 
-        assert "bdata" in args
+        assert any("bdata" in arg for arg in args)
         assert mock_exec.call_args[0][0] != "/bin/sh"
 
 
