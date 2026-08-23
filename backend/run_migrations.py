@@ -16,13 +16,14 @@ def main() -> None:
     # Safely resolve the absolute path to alembic.ini relative to this script
     base_dir = os.path.dirname(os.path.abspath(__file__))
     cfg_path = os.path.join(base_dir, "alembic.ini")
-    
+
     alembic_cfg = Config(cfg_path)
-    
+
     # Ensure the config uses the DATABASE_URL environment variable.
     # Alembic's env.py already pulls settings.database_url, which reads the env var.
     # No further action required – just run the upgrade.
     command.upgrade(alembic_cfg, "head")
+
 
 if __name__ == "__main__":
     sys.exit(main())

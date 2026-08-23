@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     def normalized_db_url(self) -> str:
         """Parses the DATABASE_URL and removes asyncpg-incompatible query parameters."""
         from sqlalchemy.engine.url import make_url
-        
+
         url_obj = make_url(self.database_url)
         if url_obj.drivername in ("postgresql", "postgresql+asyncpg"):
             url_obj = url_obj.set(drivername="postgresql+asyncpg")
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     def db_connect_args(self) -> dict:
         """Extracts SSL requirements into SQLAlchemy connection arguments."""
         from sqlalchemy.engine.url import make_url
-        
+
         url_obj = make_url(self.database_url)
         if url_obj.drivername in ("postgresql", "postgresql+asyncpg"):
             query = dict(url_obj.query)
@@ -47,6 +47,7 @@ class Settings(BaseSettings):
             is_neon = url_obj.host and "neon.tech" in url_obj.host
             if is_ssl or is_neon:
                 import ssl
+
                 return {"ssl": ssl.create_default_context()}
         return {}
 
@@ -64,6 +65,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"
     demo_mode: bool = False
+    allowed_origins: str = "*"
 
 
 settings = Settings()

@@ -69,6 +69,9 @@ class BrightDataService:
         Uses asyncio.create_subprocess_exec for bounded streaming capture.
         NEVER uses shell=True.
         """
+        if settings.demo_mode:
+            await asyncio.sleep(1)
+            return f"snap_demo_{collector_id}", [{"mock_data": True}]
         cmd_args = shlex.split(settings.bdata_cli_path)
         args = cmd_args + ["scraper", "run", collector_id, target_url]
         timeout = settings.bdata_cli_timeout_seconds
@@ -142,6 +145,9 @@ class BrightDataService:
         Uses asyncio.create_subprocess_exec for bounded streaming capture.
         NEVER uses shell=True.
         """
+        if settings.demo_mode:
+            await asyncio.sleep(1)
+            return {"status": "success", "demo": True}
         cmd_args = shlex.split(settings.bdata_cli_path)
         args = cmd_args + ["scraper", "heal", collector_id, what_broke]
         timeout = settings.bdata_cli_timeout_seconds
@@ -223,6 +229,9 @@ class BrightDataService:
         Uses asyncio.create_subprocess_exec for bounded streaming capture.
         NEVER uses shell=True. NEVER uses --auto-approve.
         """
+        if settings.demo_mode:
+            await asyncio.sleep(1)
+            return {"status": "approved", "demo": True}
         cmd_args = shlex.split(settings.bdata_cli_path)
         args = cmd_args + ["scraper", "approve", collector_id]
         timeout = settings.bdata_cli_timeout_seconds
