@@ -1,50 +1,32 @@
-import { getIncident } from "@/lib/api";
-import { ArrowLeft, Clock, ShieldCheck, Zap, AlertTriangle, FileCode2, CheckCircle2, Bot, Server, XCircle, Activity, Code2 } from "lucide-react";
+"use client";
+
+import { ArrowLeft, Clock, ShieldCheck, Zap, AlertTriangle, FileCode2, CheckCircle2, Bot, Server, XCircle, Activity, Code2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ApprovalActions } from "./ApprovalActions";
-import { VerifyActions } from "./VerifyActions";
-import { HealActions } from "./HealActions";
-import { notFound } from "next/navigation";
-import { AutoRefresh } from "@/components/AutoRefresh";
-import { DemoIncidentWrapper } from "@/components/demo/DemoIncidentWrapper";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
-export const dynamic = "force-dynamic";
+export function DemoIncidentWrapper() {
+  const [demoStage, setDemoStage] = useState("APPROVAL");
+  
+  const isRecovered = demoStage === "RECOVERED";
+  const isVerifying = demoStage === "HEALING";
+  const isHealing = demoStage === "HEALING";
+  const isAwaitingApproval = demoStage === "APPROVAL";
 
-export default async function IncidentPage({ params }: { params: { id: string } }) {
-  if (params.id === 'demo') {
-    return <DemoIncidentWrapper />;
-  }
+  let statusText = "AWAITING APPROVAL";
+  if (isHealing) statusText = "HEALING";
+  if (isRecovered) statusText = "RECOVERED";
 
-  const incidentId = parseInt(params.id, 10);
-  if (isNaN(incidentId)) return notFound();
-
-  let incident;
-  try {
-    incident = await getIncident(incidentId);
-  } catch (err) {
-    return (
-      <div className="min-h-screen bg-[#FAFAFA] p-12 flex flex-col items-center justify-center">
-        <AlertTriangle className="h-12 w-12 text-[#E11D48] mb-4" />
-        <h1 className="text-2xl font-bold text-gray-900">Incident Not Found</h1>
-        <p className="text-gray-500 mt-2 text-sm">Could not retrieve details for incident #{incidentId}</p>
-        <Link href="/" className="mt-6 px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded hover:bg-gray-800 transition-colors">
-          Return to Dashboard
-        </Link>
-      </div>
-    );
-  }
-
-  const activeHealingEvent = incident.healing_events?.[incident.healing_events.length - 1] || null;
-  const proposal = activeHealingEvent?.proposal as any;
-  const diagnosis = incident.diagnosis as any;
-
-  const isRecovered = incident.status === 'RECOVERED';
-  const isRejected = activeHealingEvent?.approval_status === 'REJECTED';
+  const approveRepair = () => {
+    setDemoStage("HEALING");
+    setTimeout(() => {
+      setDemoStage("RECOVERED");
+    }, 3000);
+  };
 
   return (
     <main className="min-h-screen bg-[#FAFAFA] font-sans">
-      <AutoRefresh interval={2000} />
       {/* Top Navbar */}
       <header className="h-14 border-b border-gray-200 bg-white flex items-center px-6 sticky top-0 z-50 shadow-sm">
         <Link href="/" className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors group">
@@ -52,7 +34,7 @@ export default async function IncidentPage({ params }: { params: { id: string } 
           Dashboard
         </Link>
         <div className="mx-4 h-4 w-px bg-gray-200" />
-        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-900">Incident Report INC-{incident.id}</span>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-900">Incident Report INC-demo</span>
       </header>
 
       <div className="max-w-[800px] mx-auto py-12 px-6">
@@ -61,18 +43,18 @@ export default async function IncidentPage({ params }: { params: { id: string } 
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase ${isRecovered ? 'bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20' : 'bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20'}`}>
-              {isRecovered ? 'RESOLVED' : diagnosis?.severity || "HIGH SEVERITY"}
+              {isRecovered ? 'RESOLVED' : 'HIGH SEVERITY'}
             </span>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase bg-gray-100 text-gray-600 border border-gray-200">
-              {incident.status.replace(/_/g, ' ')}
+              {statusText}
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-3">
-            {diagnosis?.message || "Schema Drift Detected"}
+            E-commerce scraper schema drift
           </h1>
           <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span className="flex items-center gap-1.5 font-mono"><Server className="w-4 h-4 text-gray-400" /> Collector-{incident.collector_id}</span>
-            <span className="flex items-center gap-1.5 font-mono"><Clock className="w-4 h-4 text-gray-400" /> {format(new Date(incident.created_at), 'MMM d, yyyy HH:mm:ss')}</span>
+            <span className="flex items-center gap-1.5 font-mono"><Server className="w-4 h-4 text-gray-400" /> Collector-ecommerce-scraper-prod</span>
+            <span className="flex items-center gap-1.5 font-mono"><Clock className="w-4 h-4 text-gray-400" /> {format(new Date(), 'MMM d, yyyy HH:mm:ss')}</span>
           </div>
         </div>
 
@@ -86,12 +68,12 @@ export default async function IncidentPage({ params }: { params: { id: string } 
             </div>
             <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
               <p className="text-sm text-gray-700 leading-relaxed">
-                AI diagnostic engine detected structural mutation on the target data source. The extracted data payload no longer satisfies the baseline data contract established in run #{incident.trigger_run_id}.
+                AI diagnostic engine detected structural mutation on the target data source. The extracted data payload no longer satisfies the baseline data contract established in run #148.
               </p>
               <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
                 <p className="text-xs font-mono text-gray-600">
                   <strong className="text-gray-900 font-sans text-sm block mb-1">Root Cause:</strong>
-                  {proposal?.root_cause || "Target DOM changed structure. Target node formatting has deviated from known schema signature."}
+                  The target website structure changed. Product price field changed from primitive value to nested object.
                 </p>
               </div>
             </div>
@@ -112,7 +94,7 @@ export default async function IncidentPage({ params }: { params: { id: string } 
                   <pre className="text-xs font-mono text-gray-600">
 {`{
   "product_id": "SKU-994",
-  "price": "199", // FAILED: Expected Object
+  "price": "49.99", // FAILED: Expected Object
   "in_stock": true
 }`}
                   </pre>
@@ -125,7 +107,7 @@ export default async function IncidentPage({ params }: { params: { id: string } 
 {`{
   "product_id": "SKU-994",
   "price": {
-    "value": 199.00,
+    "value": 49.99,
     "currency": "USD"
   },
   "in_stock": true
@@ -137,23 +119,23 @@ export default async function IncidentPage({ params }: { params: { id: string } 
           </section>
 
           {/* SECTION 3: AI Repair */}
-          {proposal?.proposed_fix && (
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <Code2 className="w-4 h-4 text-gray-400" />
-                <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">3. AI Repair Patch</h2>
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Code2 className="w-4 h-4 text-gray-400" />
+              <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">3. AI Repair Patch</h2>
+            </div>
+            <div className="bg-gray-900 rounded-xl shadow-sm overflow-hidden border border-gray-800">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 bg-black/50">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">extract.js</span>
+                  <span className="text-[10px] font-mono text-[#22C55E]">AST_DIFF_GENERATED</span>
               </div>
-              <div className="bg-gray-900 rounded-xl shadow-sm overflow-hidden border border-gray-800">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 bg-black/50">
-                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">extract.js</span>
-                   <span className="text-[10px] font-mono text-[#22C55E]">AST_DIFF_GENERATED</span>
-                </div>
-                <div className="p-4 text-xs font-mono text-gray-300 overflow-x-auto leading-relaxed">
-                  <pre><code>{proposal.proposed_fix.replace(/```javascript/g, '').replace(/```/g, '').trim()}</code></pre>
-                </div>
+              <div className="p-4 text-xs font-mono text-gray-300 overflow-x-auto leading-relaxed">
+                <pre><code>{`function normalizePrice(data){
+  return data.price.value;
+}`}</code></pre>
               </div>
-            </section>
-          )}
+            </div>
+          </section>
 
           {/* SECTION 4: Human Approval */}
           <section>
@@ -162,10 +144,23 @@ export default async function IncidentPage({ params }: { params: { id: string } 
               <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">4. Operator Approval</h2>
             </div>
             
-            {incident.status === 'DRIFT_DETECTED' || incident.status === 'DIAGNOSING' ? (
-              <HealActions incidentId={incidentId} />
-            ) : incident.status === 'AWAITING_APPROVAL' ? (
-              <ApprovalActions incidentId={incidentId} />
+            {isAwaitingApproval ? (
+              <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+                <p className="text-sm text-gray-600 mb-6">Review the AI-generated patch above. If approved, the system will apply the patch and verify data extraction.</p>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    onClick={approveRepair}
+                    className="bg-[#111827] hover:bg-black text-white"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Approve AI Repair
+                  </Button>
+                  <Button variant="outline" className="text-[#E11D48] border-[#E11D48]/20 hover:bg-[#E11D48]/5">
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Reject Patch
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm flex items-center justify-between">
                 <div>
@@ -180,15 +175,23 @@ export default async function IncidentPage({ params }: { params: { id: string } 
           </section>
 
           {/* SECTION 5: Recovery */}
-          {(incident.status === 'VERIFYING' || incident.status === 'HEALING' || incident.status === 'APPROVED' || isRecovered || isRejected) && (
+          {!isAwaitingApproval && (
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <Activity className="w-4 h-4 text-gray-400" />
                 <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">5. Recovery</h2>
               </div>
               
-              {incident.status === 'HEALING' || incident.status === 'APPROVED' || incident.status === 'VERIFYING' ? (
-                <VerifyActions incidentId={incidentId} />
+              {isHealing || isVerifying ? (
+                <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <Loader2 className="w-8 h-8 text-[#111827] animate-spin mb-4" />
+                    <h3 className="text-sm font-bold text-gray-900">{isHealing ? 'Applying Patch...' : 'Verifying Data Contract...'}</h3>
+                    <p className="text-xs text-gray-500 mt-1 max-w-sm">
+                      {isHealing ? 'Deploying code changes to collector node.' : 'Running validation suite against production data to verify patch fixes the extraction error.'}
+                    </p>
+                  </div>
+                </div>
               ) : isRecovered ? (
                 <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
@@ -197,16 +200,6 @@ export default async function IncidentPage({ params }: { params: { id: string } 
                   <div>
                     <h3 className="text-sm font-bold text-emerald-900">Recovery Complete</h3>
                     <p className="text-xs text-emerald-700 mt-1 font-mono">Data contract is now satisfied. Scraper operations have resumed.</p>
-                  </div>
-                </div>
-              ) : isRejected ? (
-                <div className="p-6 bg-[#E11D48]/10 border border-[#E11D48]/20 rounded-xl flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                    <XCircle className="w-5 h-5 text-[#E11D48]" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#E11D48]">Recovery Rejected</h3>
-                    <p className="text-xs text-[#E11D48]/80 mt-1 font-mono">Manual intervention required by engineering team.</p>
                   </div>
                 </div>
               ) : null}

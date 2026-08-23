@@ -6,8 +6,36 @@ import { IncidentSummary } from "@/types";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { useDemo } from "@/components/demo/DemoContext";
 
-export function IncidentCenter({ incidents }: { incidents: IncidentSummary[] }) {
+import { useState, useEffect } from "react";
+
+export function IncidentCenter({ incidents: propsIncidents }: { incidents: IncidentSummary[] }) {
+  const [demoActive, setDemoActive] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("demoMode") === "true") {
+      setDemoActive(true);
+    }
+  }, []);
+  
+  let incidents = propsIncidents;
+  if (demoActive) {
+    incidents = [{
+      id: "demo" as any,
+      collector_id: "ecommerce-scraper-prod" as any,
+      trigger_run_id: 148,
+      status: "AWAITING_APPROVAL" as any,
+      diagnosis: {
+        message: "The target website structure changed. Product price field changed from primitive value to nested object.",
+        confidence: 99
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      resolved_at: null
+    }];
+  }
+
   return (
     <Card className="h-full">
       <CardHeader 
@@ -53,17 +81,37 @@ export function IncidentCenter({ incidents }: { incidents: IncidentSummary[] }) 
                <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-widest">Recent Activity</span>
             </div>
             <div className="flex flex-col gap-3">
-               {[
-                 { label: 'System initialized', time: '2m ago' },
-                 { label: 'AI engine ready', time: '1m ago' },
-                 { label: 'Monitoring infrastructure', time: 'Just now' }
-               ].map((log, i) => (
-                 <div key={i} className="flex items-center gap-3">
-                   <div className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
-                   <div className="flex-1 text-[11px] font-bold text-[#111827]">{log.label}</div>
-                   <div className="text-[10px] text-[#64748B]">{log.time}</div>
-                 </div>
-               ))}
+               {false ? (
+                 <>
+                   <div className="flex items-center gap-3">
+                     <div className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                     <div className="flex-1 text-[11px] font-bold text-[#111827]">System recovered</div>
+                     <div className="text-[10px] text-[#64748B]">Just now</div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                     <div className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                     <div className="flex-1 text-[11px] font-bold text-[#111827]">Verification completed</div>
+                     <div className="text-[10px] text-[#64748B]">1m ago</div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                     <div className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                     <div className="flex-1 text-[11px] font-bold text-[#111827]">Repair approved</div>
+                     <div className="text-[10px] text-[#64748B]">2m ago</div>
+                   </div>
+                 </>
+               ) : (
+                 [
+                   { label: 'System initialized', time: '2m ago' },
+                   { label: 'AI engine ready', time: '1m ago' },
+                   { label: 'Monitoring infrastructure', time: 'Just now' }
+                 ].map((log, i) => (
+                   <div key={i} className="flex items-center gap-3">
+                     <div className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                     <div className="flex-1 text-[11px] font-bold text-[#111827]">{log.label}</div>
+                     <div className="text-[10px] text-[#64748B]">{log.time}</div>
+                   </div>
+                 ))
+               )}
             </div>
           </div>
         ) : (
@@ -105,9 +153,11 @@ export function IncidentCenter({ incidents }: { incidents: IncidentSummary[] }) 
                     >
                       View Incident
                     </Link>
-                    <Button variant="outline" className="flex-1 font-bold tracking-widest text-[10px] uppercase rounded-lg h-8 text-[#111827]">
-                      Approve Repair
-                    </Button>
+                    <Link href={`/incidents/${incident.id}`} className="flex-1">
+                      <Button variant="outline" className="w-full font-bold tracking-widest text-[10px] uppercase rounded-lg h-8 text-[#111827]">
+                        {incident.status === 'HEALING' ? 'Healing...' : incident.status === 'VERIFYING' ? 'Verifying...' : 'Approve Repair'}
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               );

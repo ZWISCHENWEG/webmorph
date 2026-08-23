@@ -345,6 +345,7 @@ class IncidentService:
         baseline_results = await session.scalars(baseline_stmt)
         baseline_counts = [s.record_count for s in baseline_results]
 
+        logger.info(f"DEBUG raw_payload: {raw_payload}")
         validation_result = process_payload(raw_payload, baseline_counts)
 
         snapshot = Snapshot(

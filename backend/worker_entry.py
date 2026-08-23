@@ -5,12 +5,12 @@ from sqlalchemy import select
 
 from app.database import async_session_factory
 from app.models.job import Job, JobOperationType, JobStatus
-from app.workers.approve_worker import process_heal_approve_job
-from app.workers.heal_worker import process_heal_request_job
+from app.workers.approve_worker import process_approve_job
+from app.workers.heal_worker import process_heal_job
 
 # Import the actual worker logic functions
 from app.workers.run_worker import process_collection_job
-from app.workers.verify_worker import process_verification_job
+from app.workers.verify_worker import process_verify_job
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("worker_entry")
@@ -37,16 +37,17 @@ async def poll_jobs():
                     if job.operation_type == JobOperationType.COLLECTION:
                         asyncio.create_task(process_collection_job(job.id))
                     elif job.operation_type == JobOperationType.HEAL_REQUEST:
-                        asyncio.create_task(process_heal_request_job(job.id))
+                        asyncio.create_task(process_heal_job(job.id))
                     elif job.operation_type == JobOperationType.HEAL_APPROVE:
-                        asyncio.create_task(process_heal_approve_job(job.id))
+                        asyncio.create_task(process_approve_job(job.id))
                     elif job.operation_type == JobOperationType.VERIFICATION:
-                        asyncio.create_task(process_verification_job(job.id))
+                        asyncio.create_task(process_verify_job(job.id))
 
         except Exception as e:
             logger.error(f"Error in polling loop: {e}")
 
-        await asyncio.sleep(5)  # Poll interval
+        # Poll every 1 second for faster demo response times
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":

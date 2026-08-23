@@ -4,8 +4,28 @@ import { ShieldCheck, Database, Zap, Activity } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { useDemo } from "@/components/demo/DemoContext";
 
-export function SystemCore({ health, activeCollectors, incidents, repairs }: { health: number, activeCollectors: number, incidents: number, repairs: number }) {
+import { useState, useEffect } from "react";
+
+export function SystemCore({ health: propsHealth, activeCollectors, incidents: propsIncidents, repairs: propsRepairs }: { health: number, activeCollectors: number, incidents: number, repairs: number }) {
+  const [demoActive, setDemoActive] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("demoMode") === "true") {
+      setDemoActive(true);
+    }
+  }, []);
+  
+  let health = propsHealth;
+  let incidents = propsIncidents;
+  let repairs = propsRepairs;
+
+  if (demoActive) {
+    health = 72;
+    incidents = 1;
+  }
+
   const isHealthy = health >= 90;
   
   return (
@@ -82,21 +102,29 @@ export function SystemCore({ health, activeCollectors, incidents, repairs }: { h
            </div>
            
            <div className="flex flex-col items-center justify-center text-center py-2 mb-5">
-             <p className="text-[13px] font-bold text-[#111827] mb-1">No active pipeline</p>
-             <p className="text-[12px] text-[#64748B]">All systems operating normally</p>
+             <p className="text-[13px] font-bold text-[#111827] mb-1">
+               {demoActive ? "Pipeline Active" : "No active pipeline"}
+             </p>
+             <p className="text-[12px] text-[#64748B]">
+               {demoActive ? "Processing recovery operations" : "All systems operating normally"}
+             </p>
            </div>
            
            <div className="flex items-center justify-between relative">
               <div className="absolute top-1/2 left-0 w-full h-px bg-[#E5E7EB] -translate-y-1/2 z-0" />
               
-              {["Detection", "Diagnosis", "Repair", "Approval", "Recovery"].map((step, i) => (
-                <div key={step} className="flex flex-col items-center z-10 gap-2 bg-[#F8FAFC] px-2">
-                  <div className="w-2.5 h-2.5 rounded-full border border-[#E5E7EB] bg-white flex items-center justify-center">
-                    <div className="w-1 h-1 rounded-full bg-[#E5E7EB]" />
+              {["Detection", "Diagnosis", "Repair", "Approval", "Recovery"].map((step, i) => {
+                let isActiveStep = false;
+                if (demoActive && i <= 1) isActiveStep = true;
+                return (
+                  <div key={step} className="flex flex-col items-center z-10 gap-2 bg-[#F8FAFC] px-2">
+                    <div className={`w-2.5 h-2.5 rounded-full border flex items-center justify-center ${isActiveStep ? 'border-[#16A34A] bg-[#16A34A]' : 'border-[#E5E7EB] bg-white'}`}>
+                      <div className={`w-1 h-1 rounded-full ${isActiveStep ? 'bg-white' : 'bg-[#E5E7EB]'}`} />
+                    </div>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider ${isActiveStep ? 'text-[#16A34A]' : 'text-[#64748B]'}`}>{step}</span>
                   </div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#64748B]">{step}</span>
-                </div>
-              ))}
+                );
+              })}
            </div>
         </div>
       </CardContent>

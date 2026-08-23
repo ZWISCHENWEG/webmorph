@@ -3,7 +3,7 @@ import { SystemCore } from "@/components/dashboard/SystemCore";
 import { CollectorNetwork } from "@/components/dashboard/CollectorNetwork";
 import { IncidentCenter } from "@/components/dashboard/IncidentCenter";
 import { PerformanceMetrics } from "@/components/dashboard/PerformanceMetrics";
-
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,7 @@ export default async function DashboardPage() {
 
   return (
     <>
+      <AutoRefresh interval={2000} />
       {/* Dashboard Grid */}
       <div className="w-full flex-1 grid gap-6 items-start grid-cols-1 lg:grid-cols-2 xl:grid-cols-[320px_minmax(500px,1fr)_360px]">
         

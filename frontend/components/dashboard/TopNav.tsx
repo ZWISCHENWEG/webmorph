@@ -7,9 +7,12 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
+import { useDemo } from "@/components/demo/DemoContext";
+
 export function TopNav() {
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const pathname = usePathname();
+  const demo = useDemo();
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-[#E5E7EB]">
@@ -18,7 +21,7 @@ export function TopNav() {
         {/* LEFT: Logo & Brand */}
         <div className="flex items-center gap-6 justify-start">
           <Link href="/" className="flex items-center gap-4">
-            <Image src="/logo.svg" alt="WebMorph Logo" width={64} height={64} className="w-[64px] h-[64px] scale-[2.2] origin-left" />
+            <Image src="/logo.svg" alt="WebMorph Logo" width={40} height={40} className="w-10 h-10 object-contain" />
             <div className="flex flex-col justify-center">
               <span className="font-[700] text-[20px] text-[#111827] leading-tight tracking-tight">WebMorph</span>
               <span className="text-[11px] font-[700] text-[#64748B] tracking-[1.2px] leading-tight uppercase mt-0.5">Autonomous AI Infrastructure</span>
@@ -64,27 +67,17 @@ export function TopNav() {
             </div>
             
             <Button 
-              disabled={isDemoLoading}
-              onClick={async () => {
-                setIsDemoLoading(true);
-                try {
-                  await fetch('/api/demo', { method: 'POST' });
-                  window.location.href = '/';
-                } catch (e) {
-                  console.error(e);
-                  setIsDemoLoading(false);
-                }
+              onClick={() => {
+                alert("clicked");
+                sessionStorage.setItem("demoMode", "true");
+                window.location.href = '/';
               }}
               className="px-5 font-[600] tracking-widest uppercase text-[12px] h-[40px] rounded-[10px]"
             >
-              {isDemoLoading ? (
-                <Loader2 className="w-[14px] h-[14px] animate-spin mr-2" />
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                  <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
-                </svg>
-              )}
-              {isDemoLoading ? 'Running...' : 'Run Demo'}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+              </svg>
+              Run Demo
             </Button>
           </div>
           

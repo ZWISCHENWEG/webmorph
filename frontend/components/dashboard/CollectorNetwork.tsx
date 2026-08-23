@@ -54,19 +54,13 @@ export function CollectorNetwork({ collectors }: { collectors: Collector[] }) {
             <Button 
               className="w-full font-bold tracking-widest text-[11px] uppercase rounded-lg"
               disabled={isDemoLoading}
-              onClick={async () => {
-                setIsDemoLoading(true);
-                try {
-                  await fetch('/api/demo', { method: 'POST' });
-                  window.location.href = '/';
-                } catch (e) {
-                  console.error(e);
-                  setIsDemoLoading(false);
-                }
+              onClick={() => {
+                alert("clicked");
+                sessionStorage.setItem("demoMode", "true");
+                window.location.href = '/';
               }}
             >
-              {isDemoLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : null}
-              {isDemoLoading ? 'INITIALIZING...' : 'RUN DEMO'}
+              RUN DEMO
             </Button>
           </div>
         ) : (

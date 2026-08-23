@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   description: "A reliability layer for web data.",
 };
 
+import { DemoProvider } from "@/components/demo/DemoContext";
+
 export default function RootLayout({
   children,
 }: {
@@ -31,13 +33,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn(inter.variable, jetbrainsMono.variable, "font-sans")}>
       <body className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-[#111827]">
-        <TopNav />
-        <main className="flex-1 w-full flex flex-col">
-          <PageContainer className="flex-1 flex flex-col">
-            {children}
-          </PageContainer>
-        </main>
-        <SystemStatusFooter />
+        <DemoProvider>
+          <TopNav />
+          <main className="flex-1 w-full flex flex-col">
+            <PageContainer className="flex-1 flex flex-col">
+              {children}
+            </PageContainer>
+          </main>
+          <SystemStatusFooter />
+        </DemoProvider>
       </body>
     </html>
   );
