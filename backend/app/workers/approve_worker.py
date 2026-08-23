@@ -168,10 +168,6 @@ async def process_approve_job(job_id: int):
             )
         await session.commit()
 
-        await IncidentService.execute_verification(
-            session=session,
-            incident=incident,
-            healing_event=healing_event,
-            job=job,
-            collector=collector,
-        )
+        # In demo mode, we stop here so the user can manually trigger Verification via UI
+        job.status = JobStatus.SUCCEEDED
+        await session.commit()

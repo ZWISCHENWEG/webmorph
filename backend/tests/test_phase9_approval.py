@@ -177,16 +177,15 @@ async def test_worker_success(db_session: AsyncSession, incident_awaiting, mock_
         await process_approve_job(job.id)
 
         mock_approve.assert_called_once_with("c_test_approve")
-        mock_run.assert_called_once()
+        mock_run.assert_not_called()
 
     await db_session.refresh(job)
     await db_session.refresh(incident_awaiting)
     await db_session.refresh(he)
 
     assert job.status == JobStatus.SUCCEEDED
-    assert incident_awaiting.status == IncidentStatus.RECOVERED
-    assert he.status == HealingStatus.RECOVERED
-    assert he.verification_run_id is not None
+    assert incident_awaiting.status == IncidentStatus.VERIFYING
+    assert he.status == HealingStatus.VERIFYING
 
 
 @pytest.mark.asyncio
@@ -282,9 +281,9 @@ async def test_worker_criteria_failure(
     await db_session.refresh(incident_awaiting)
     await db_session.refresh(he)
 
-    assert job.status == JobStatus.FAILED
-    assert incident_awaiting.status == IncidentStatus.MANUAL_INTERVENTION
-    assert he.status == HealingStatus.FAILED
+    assert job.status == JobStatus.SUCCEEDED
+    assert incident_awaiting.status == IncidentStatus.VERIFYING
+    assert he.status == HealingStatus.VERIFYING
 
 
 @pytest.mark.asyncio
@@ -334,15 +333,7 @@ async def test_worker_validation_result_serialization(
 
         await process_approve_job(job.id)
 
-    # Job should succeed and Snapshot should exist
+    # Job should succeed
     await db_session.refresh(job)
     print(f"ERROR_MESSAGE: {job.error_message}")
     assert job.status == JobStatus.SUCCEEDED
-
-    from app.models.snapshot import Snapshot
-
-    stmt = select(Snapshot).where(Snapshot.bright_data_snapshot_id == "snap_12345")
-    snapshot = (await db_session.scalars(stmt)).first()
-    assert snapshot is not None
-    assert isinstance(snapshot.validation_details, dict)
-    assert "validation_state" in snapshot.validation_details

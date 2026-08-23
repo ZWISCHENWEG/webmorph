@@ -1,103 +1,55 @@
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
-function Card({
-  className,
-  size = "default",
-  ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
-  return (
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
     <div
-      data-slot="card"
-      data-size={size}
+      ref={ref}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "bg-[#FFFFFF] border border-[#E5E7EB] rounded-[16px] p-[24px] shadow-[0_4px_24px_rgba(15,23,42,0.06)] flex flex-col gap-4",
         className
       )}
       {...props}
     />
   )
+)
+Card.displayName = "Card"
+
+interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  icon?: React.ReactNode;
+  title: string;
+  status?: React.ReactNode;
 }
 
-function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
+const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
+  ({ className, icon, title, status, ...props }, ref) => (
     <div
-      data-slot="card-header"
-      className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
-        className
-      )}
+      ref={ref}
+      className={cn("flex items-center justify-between", className)}
       {...props}
-    />
+    >
+      <div className="flex items-center gap-3">
+        {icon && <div className="text-[#64748B] flex items-center justify-center">{icon}</div>}
+        <h3 className="text-[#111827] font-[700] text-[13px] tracking-wide">{title}</h3>
+      </div>
+      {status && <div>{status}</div>}
+    </div>
   )
-}
+)
+CardHeader.displayName = "CardHeader"
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-title"
-      className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
-        className
-      )}
-      {...props}
-    />
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("flex-1", className)} {...props} />
   )
-}
+)
+CardContent.displayName = "CardContent"
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
-      {...props}
-    />
+const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("mt-auto flex items-center pt-4", className)} {...props} />
   )
-}
+)
+CardFooter.displayName = "CardFooter"
 
-function CardAction({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-action"
-      className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-function CardContent({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-content"
-      className={cn("px-(--card-spacing)", className)}
-      {...props}
-    />
-  )
-}
-
-function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-footer"
-      className={cn(
-        "flex items-center rounded-b-xl border-t bg-muted/50 p-(--card-spacing)",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-export {
-  Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardAction,
-  CardDescription,
-  CardContent,
-}
+export { Card, CardHeader, CardContent, CardFooter }

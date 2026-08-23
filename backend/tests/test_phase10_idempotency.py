@@ -267,11 +267,9 @@ async def test_approve_worker_composite_exhaustion(
         await process_approve_job(job.id)
 
     await db_session.refresh(job)
-    assert job.status == JobStatus.FAILED
-    assert job.attempt_count == 4  # 1 approval + 3 verifications
+    assert job.status == JobStatus.SUCCEEDED
+    assert job.attempt_count == 1  # 1 approval
 
     assert mock_approve.call_count == 1
-    assert mock_run.call_count == 3
-    assert mock_sleep.call_count == 2
-    mock_sleep.assert_any_call(2)
-    mock_sleep.assert_any_call(4)
+    assert mock_run.call_count == 0
+    assert mock_sleep.call_count == 0

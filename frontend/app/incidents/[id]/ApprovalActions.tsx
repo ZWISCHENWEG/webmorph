@@ -27,7 +27,7 @@ export function ApprovalActions({ incidentId }: { incidentId: number }) {
   };
 
   return (
-    <Card className="bg-card/80 border-border/50 backdrop-blur-md shadow-2xl shadow-black/50">
+    <Card className="bg-card border-border shadow-sm">
       <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold text-foreground">Human Approval Required</h3>
@@ -44,7 +44,7 @@ export function ApprovalActions({ incidentId }: { incidentId: number }) {
             Reject Fix
           </Button>
           <Button 
-            className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all"
+            className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-white transition-all"
             onClick={() => handleAction(true)}
             disabled={loading !== null}
           >

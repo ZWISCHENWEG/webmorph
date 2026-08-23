@@ -1,10 +1,10 @@
 import { getIncident } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Clock, ShieldCheck, Zap, AlertTriangle, FileCode2, CheckCircle2, Bot, Server, XCircle, Activity } from "lucide-react";
+import { ArrowLeft, Clock, ShieldCheck, Zap, AlertTriangle, FileCode2, CheckCircle2, Bot, Server, XCircle, Activity, Code2 } from "lucide-react";
 import Link from "next/link";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { ApprovalActions } from "./ApprovalActions";
+import { VerifyActions } from "./VerifyActions";
+import { HealActions } from "./HealActions";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +18,13 @@ export default async function IncidentPage({ params }: { params: { id: string } 
     incident = await getIncident(incidentId);
   } catch (err) {
     return (
-      <div className="min-h-screen bg-background p-12 flex flex-col items-center justify-center">
-        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-        <h1 className="text-2xl font-bold">Incident Not Found</h1>
-        <p className="text-muted-foreground mt-2">Could not retrieve details for incident #{incidentId}</p>
-        <Link href="/" className="mt-6 text-primary hover:underline">Return to Dashboard</Link>
+      <div className="min-h-screen bg-[#FAFAFA] p-12 flex flex-col items-center justify-center">
+        <AlertTriangle className="h-12 w-12 text-[#E11D48] mb-4" />
+        <h1 className="text-2xl font-bold text-gray-900">Incident Not Found</h1>
+        <p className="text-gray-500 mt-2 text-sm">Could not retrieve details for incident #{incidentId}</p>
+        <Link href="/" className="mt-6 px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded hover:bg-gray-800 transition-colors">
+          Return to Dashboard
+        </Link>
       </div>
     );
   }
@@ -31,222 +33,178 @@ export default async function IncidentPage({ params }: { params: { id: string } 
   const proposal = activeHealingEvent?.proposal as any;
   const diagnosis = incident.diagnosis as any;
 
-  // Timeline derivation based on incident status
-  const isDetected = true; // Always true if incident exists
-  const isDiagnosed = !!proposal?.ai_diagnosis || incident.status !== 'DRIFT_DETECTED';
-  const isProposed = !!activeHealingEvent;
-  const isApproved = activeHealingEvent?.approval_status === 'APPROVED';
-  const isRejected = activeHealingEvent?.approval_status === 'REJECTED';
   const isRecovered = incident.status === 'RECOVERED';
+  const isRejected = activeHealingEvent?.approval_status === 'REJECTED';
 
   return (
-    <main className="min-h-screen bg-background text-foreground p-6 md:p-12">
-      {/* Back Navigation */}
-      <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-mono text-sm mb-8 group">
-        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        RETURN TO DASHBOARD
-      </Link>
+    <main className="min-h-screen bg-[#FAFAFA] font-sans">
+      {/* Top Navbar */}
+      <header className="h-14 border-b border-gray-200 bg-white flex items-center px-6 sticky top-0 z-50 shadow-sm">
+        <Link href="/" className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors group">
+          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+          Dashboard
+        </Link>
+        <div className="mx-4 h-4 w-px bg-gray-200" />
+        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-900">Incident Report INC-{incident.id}</span>
+      </header>
 
-      {/* 1. Incident Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-border/50 pb-8">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 font-mono text-xs px-2 py-0.5">
-              {diagnosis?.severity || "HIGH"} SEVERITY
-            </Badge>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 font-mono text-xs px-2 py-0.5">
+      <div className="max-w-[800px] mx-auto py-12 px-6">
+        
+        {/* HEADER */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-4">
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase ${isRecovered ? 'bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20' : 'bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20'}`}>
+              {isRecovered ? 'RESOLVED' : diagnosis?.severity || "HIGH SEVERITY"}
+            </span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase bg-gray-100 text-gray-600 border border-gray-200">
               {incident.status.replace(/_/g, ' ')}
-            </Badge>
+            </span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 mb-3">
             {diagnosis?.message || "Schema Drift Detected"}
           </h1>
-          <p className="text-muted-foreground font-mono flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><Server className="w-4 h-4" /> Collector #{incident.collector_id}</span>
-            <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {format(new Date(incident.created_at), 'MMM d, yyyy HH:mm:ss')}</span>
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Column: Timeline & Overview */}
-        <div className="lg:col-span-4 space-y-8">
-          {/* 2. Detection Timeline */}
-          <Card className="bg-card/40 backdrop-blur-sm border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Execution Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6 relative before:absolute before:inset-y-0 before:left-[17px] before:w-[2px] before:bg-border/50">
-                {/* Detected */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 z-10 transition-colors duration-500 ${isDetected ? 'bg-amber-500/20 border border-amber-500/30 text-amber-400' : 'bg-muted border border-border text-muted-foreground'}`}>
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                  <div className="pt-1.5">
-                    <p className={`text-sm font-medium ${isDetected ? 'text-foreground' : 'text-muted-foreground'}`}>Failure Detected</p>
-                    {isDetected && <p className="text-xs text-muted-foreground font-mono mt-0.5">Schema signature mismatch</p>}
-                  </div>
-                </div>
-
-                {/* AI Diagnosis */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 z-10 transition-colors duration-500 ${isDiagnosed ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 animate-pulse' : 'bg-muted border border-border text-muted-foreground'}`}>
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="pt-1.5">
-                    <p className={`text-sm font-medium ${isDiagnosed ? 'text-foreground' : 'text-muted-foreground'}`}>AI Diagnosis Complete</p>
-                    {isDiagnosed && <p className="text-xs text-muted-foreground font-mono mt-0.5">Root cause isolated</p>}
-                  </div>
-                </div>
-
-                {/* Fix Generated */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 z-10 transition-colors duration-500 ${isProposed ? 'bg-purple-500/20 border border-purple-500/30 text-purple-400' : 'bg-muted border border-border text-muted-foreground'}`}>
-                    <FileCode2 className="w-4 h-4" />
-                  </div>
-                  <div className="pt-1.5">
-                    <p className={`text-sm font-medium ${isProposed ? 'text-foreground' : 'text-muted-foreground'}`}>Fix Generated</p>
-                    {isProposed && <p className="text-xs text-muted-foreground font-mono mt-0.5">Proposal ready for review</p>}
-                  </div>
-                </div>
-
-                {/* Approval */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 z-10 transition-colors duration-500 ${isApproved ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' : isRejected ? 'bg-destructive/20 border border-destructive/30 text-destructive' : 'bg-muted border border-border text-muted-foreground'}`}>
-                    {isApproved ? <CheckCircle2 className="w-4 h-4" /> : isRejected ? <XCircle className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
-                  </div>
-                  <div className="pt-1.5">
-                    <p className={`text-sm font-medium ${isApproved || isRejected ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {isApproved ? 'Recovery Approved' : isRejected ? 'Recovery Rejected' : 'Awaiting Approval'}
-                    </p>
-                    {(isApproved || isRejected) && <p className="text-xs text-muted-foreground font-mono mt-0.5">Operator action recorded</p>}
-                  </div>
-                </div>
-
-                {/* Verification */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 z-10 transition-colors duration-500 ${isRecovered ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-muted border border-border text-muted-foreground'}`}>
-                    <Zap className="w-4 h-4" />
-                  </div>
-                  <div className="pt-1.5">
-                    <p className={`text-sm font-medium ${isRecovered ? 'text-foreground' : 'text-muted-foreground'}`}>Recovery Verified</p>
-                    {isRecovered && <p className="text-xs text-emerald-400 font-mono mt-0.5">System healed automatically</p>}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-4 text-sm text-gray-500">
+            <span className="flex items-center gap-1.5 font-mono"><Server className="w-4 h-4 text-gray-400" /> Collector-{incident.collector_id}</span>
+            <span className="flex items-center gap-1.5 font-mono"><Clock className="w-4 h-4 text-gray-400" /> {format(new Date(incident.created_at), 'MMM d, yyyy HH:mm:ss')}</span>
+          </div>
         </div>
 
-        {/* Right Column: Details & Actions */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="space-y-12">
           
-          {/* 3. AI Analysis Panel */}
-          <Card className="bg-card/40 backdrop-blur-sm border-border/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-            <CardHeader className="border-b border-border/30 pb-4">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-cyan-400" /> AI Decision Record
-                </CardTitle>
-                {proposal?.confidence_score && (
-                  <Badge variant="outline" className="bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-mono">
-                    {proposal.confidence_score}% CONFIDENCE
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              <div>
-                <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2">Evidence & Root Cause</h3>
-                <p className="text-sm leading-relaxed bg-background/50 p-4 rounded-md border border-border/30 font-mono">
-                  {proposal?.root_cause || "Analyzing DOM structure... Target node formatting has deviated from known schema signature."}
+          {/* SECTION 1: Detection */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-4 h-4 text-gray-400" />
+              <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">1. Detection</h2>
+            </div>
+            <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                AI diagnostic engine detected structural mutation on the target data source. The extracted data payload no longer satisfies the baseline data contract established in run #{incident.trigger_run_id}.
+              </p>
+              <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
+                <p className="text-xs font-mono text-gray-600">
+                  <strong className="text-gray-900 font-sans text-sm block mb-1">Root Cause:</strong>
+                  {proposal?.root_cause || "Target DOM changed structure. Target node formatting has deviated from known schema signature."}
                 </p>
               </div>
-              
-              {proposal?.ai_diagnosis && (
-                <div>
-                  <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2">AI Diagnosis Summary</h3>
-                  <p className="text-sm leading-relaxed text-foreground/90">
-                    {proposal.ai_diagnosis}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          {/* 4. Recovery Proposal (Diff View) */}
-          {proposal?.proposed_fix && (
-            <Card className="bg-card/40 backdrop-blur-sm border-border/50">
-              <CardHeader className="border-b border-border/30 pb-4">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <FileCode2 className="w-5 h-5 text-purple-400" /> Proposed Recovery Patch
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="rounded-md overflow-hidden border border-border/50">
-                  <div className="flex bg-muted/50 text-xs font-mono border-b border-border/50">
-                    <div className="flex-1 p-2 border-r border-border/50 text-center text-muted-foreground">PREVIOUS PARSER</div>
-                    <div className="flex-1 p-2 text-center text-purple-400 font-medium bg-purple-500/5">AI GENERATED PARSER</div>
-                  </div>
-                  <div className="flex flex-col md:flex-row bg-[#0b0c10] text-sm font-mono overflow-x-auto">
-                    <div className="flex-1 p-4 border-b md:border-b-0 md:border-r border-border/30 text-red-400/80">
-                      <pre><code>{`// Outdated parser logic\nconst rawPrice = $('#price').text();\nreturn parseFloat(rawPrice);`}</code></pre>
-                    </div>
-                    <div className="flex-1 p-4 text-emerald-400/90 relative">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/50" />
-                      <pre><code>{proposal.proposed_fix.replace(/```javascript/g, '').replace(/```/g, '').trim()}</code></pre>
-                    </div>
-                  </div>
+          {/* SECTION 2: AI Reasoning */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <Bot className="w-4 h-4 text-gray-400" />
+              <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">2. AI Reasoning</h2>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+                <div className="p-6 bg-gray-50">
+                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <XCircle className="w-3.5 h-3.5 text-[#E11D48]" /> Contract Violation (Before)
+                  </h3>
+                  <pre className="text-xs font-mono text-gray-600">
+{`{
+  "product_id": "SKU-994",
+  "price": "199", // FAILED: Expected Object
+  "in_stock": true
+}`}
+                  </pre>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="p-6 bg-white">
+                  <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" /> AI Reconstruction (After)
+                  </h3>
+                  <pre className="text-xs font-mono text-gray-900">
+{`{
+  "product_id": "SKU-994",
+  "price": {
+    "value": 199.00,
+    "currency": "USD"
+  },
+  "in_stock": true
+}`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* SECTION 3: AI Repair */}
+          {proposal?.proposed_fix && (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Code2 className="w-4 h-4 text-gray-400" />
+                <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">3. AI Repair Patch</h2>
+              </div>
+              <div className="bg-gray-900 rounded-xl shadow-sm overflow-hidden border border-gray-800">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 bg-black/50">
+                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">extract.js</span>
+                   <span className="text-[10px] font-mono text-[#22C55E]">AST_DIFF_GENERATED</span>
+                </div>
+                <div className="p-4 text-xs font-mono text-gray-300 overflow-x-auto leading-relaxed">
+                  <pre><code>{proposal.proposed_fix.replace(/```javascript/g, '').replace(/```/g, '').trim()}</code></pre>
+                </div>
+              </div>
+            </section>
           )}
 
-          {/* 5. Approval Action / Verification Result */}
-          <div className="sticky bottom-6 z-50">
-            {incident.status === 'AWAITING_APPROVAL' ? (
+          {/* SECTION 4: Human Approval */}
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldCheck className="w-4 h-4 text-gray-400" />
+              <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">4. Operator Approval</h2>
+            </div>
+            
+            {incident.status === 'DRIFT_DETECTED' || incident.status === 'DIAGNOSING' ? (
+              <HealActions incidentId={incidentId} />
+            ) : incident.status === 'AWAITING_APPROVAL' ? (
               <ApprovalActions incidentId={incidentId} />
-            ) : isRecovered ? (
-              <Card className="bg-emerald-500/10 border-emerald-500/30 backdrop-blur-md shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-emerald-400">Verification Passed: Recovery Complete</h3>
-                    <p className="text-sm text-emerald-400/80 font-mono mt-1">Data contract is now satisfied. Scraper has resumed normal operations.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : isRejected ? (
-              <Card className="bg-destructive/10 border-destructive/30 backdrop-blur-md">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
-                    <XCircle className="w-6 h-6 text-destructive" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-destructive">Recovery Rejected</h3>
-                    <p className="text-sm text-destructive/80 font-mono mt-1">Manual intervention is now required by engineering team.</p>
-                  </div>
-                </CardContent>
-              </Card>
             ) : (
-              <Card className="bg-card/80 border-border/50 backdrop-blur-md">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0 animate-pulse">
-                    <Activity className="w-6 h-6 text-primary" />
+              <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Patch Approved</h3>
+                  <p className="text-xs text-gray-500 mt-1">Operator authorized the deployment of the AI generated patch.</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* SECTION 5: Recovery */}
+          {(incident.status === 'VERIFYING' || incident.status === 'HEALING' || incident.status === 'APPROVED' || isRecovered || isRejected) && (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="w-4 h-4 text-gray-400" />
+                <h2 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">5. Recovery</h2>
+              </div>
+              
+              {incident.status === 'HEALING' || incident.status === 'APPROVED' || incident.status === 'VERIFYING' ? (
+                <VerifyActions incidentId={incidentId} />
+              ) : isRecovered ? (
+                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <ShieldCheck className="w-5 h-5 text-[#22C55E]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Executing Recovery...</h3>
-                    <p className="text-sm text-muted-foreground font-mono mt-1">Applying patch and verifying data contract constraints.</p>
+                    <h3 className="text-sm font-bold text-emerald-900">Recovery Complete</h3>
+                    <p className="text-xs text-emerald-700 mt-1 font-mono">Data contract is now satisfied. Scraper operations have resumed.</p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                </div>
+              ) : isRejected ? (
+                <div className="p-6 bg-[#E11D48]/10 border border-[#E11D48]/20 rounded-xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <XCircle className="w-5 h-5 text-[#E11D48]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#E11D48]">Recovery Rejected</h3>
+                    <p className="text-xs text-[#E11D48]/80 mt-1 font-mono">Manual intervention required by engineering team.</p>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          )}
 
         </div>
       </div>

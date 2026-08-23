@@ -107,3 +107,13 @@ export async function approveHeal(incidentId: number, approved: boolean): Promis
   });
   return handleResponse<{status: string, job_id?: string}>(response);
 }
+
+export async function verifyHeal(incidentId: number): Promise<JobTriggerResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  return handleResponse<JobTriggerResponse>(response);
+}
