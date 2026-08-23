@@ -30,10 +30,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow Next.js frontend in development
+# CORS — allow wildcard for easy hackathon deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,6 +45,12 @@ app.include_router(jobs.router)
 app.include_router(runs.router)
 
 setup_exception_handlers(app)
+
+
+@app.get("/health")
+async def health_check_root():
+    """Root health check for deployment services like Render."""
+    return {"status": "ok"}
 
 
 @app.get("/api/health")
