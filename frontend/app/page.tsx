@@ -19,9 +19,50 @@ export default async function DashboardPage() {
   // Calculate stats
   const activeCollectorsCount = collectors.length;
   const recentIncidentsCount = incidents.filter(i => i.status !== 'RECOVERED').length;
-  // Mocking AI Repairs Completed and System Health for the hero presentation
-  const aiRepairsCompleted = 24;
+  const aiRepairsCompleted = 24 + incidents.filter(i => i.status === 'RECOVERED').length;
   const systemHealth = activeCollectorsCount > 0 && recentIncidentsCount === 0 ? "100%" : "98.5%";
+
+  // Generate dynamic timeline events
+  const timelineEvents = incidents.slice(0, 5).map(incident => {
+    const timeStr = formatDistanceToNow(new Date(incident.updated_at || incident.created_at), { addSuffix: true });
+    const collectorStr = `Collector #${incident.collector_id}`;
+    const severity = (incident.diagnosis as any)?.severity || "HIGH";
+    const message = (incident.diagnosis as any)?.message || "Schema Drift Detected";
+
+    if (incident.status === 'RECOVERED') {
+      return {
+        id: incident.id,
+        title: 'Repair approved & system healed',
+        subtitle: `${timeStr} • ${collectorStr}`,
+        icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
+        bgClass: "bg-emerald-500/20 border-emerald-500/30",
+      };
+    } else if (incident.status === 'AWAITING_APPROVAL') {
+      return {
+        id: incident.id,
+        title: 'AI diagnosis completed & healing proposed',
+        subtitle: `${timeStr} • ${collectorStr}`,
+        icon: <Zap className="w-4 h-4 text-purple-400" />,
+        bgClass: "bg-purple-500/20 border-purple-500/30",
+      };
+    } else if (incident.status === 'VERIFYING') {
+      return {
+        id: incident.id,
+        title: 'Executing recovery and verifying contract',
+        subtitle: `${timeStr} • ${collectorStr}`,
+        icon: <Activity className="w-4 h-4 text-blue-400" />,
+        bgClass: "bg-blue-500/20 border-blue-500/30",
+      };
+    } else {
+      return {
+        id: incident.id,
+        title: `${message}`,
+        subtitle: `${timeStr} • Severity: ${severity}`,
+        icon: <AlertTriangle className="w-4 h-4 text-amber-400" />,
+        bgClass: "bg-amber-500/20 border-amber-500/30",
+      };
+    }
+  });
 
   return (
     <main className="min-h-screen bg-background text-foreground p-6 md:p-12 space-y-12">
@@ -145,35 +186,25 @@ export default async function DashboardPage() {
             <h2 className="text-xl font-semibold tracking-tight">System Activity</h2>
             <Card className="bg-card/20 backdrop-blur-sm border-border/50">
               <CardContent className="p-6">
-                <div className="space-y-6 relative before:absolute before:inset-y-0 before:left-[17px] before:w-[1px] before:bg-border/50">
-                  <div className="flex gap-4 relative">
-                    <div className="w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 z-10 backdrop-blur-md">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <div className="pt-1.5 space-y-1">
-                      <p className="text-sm font-medium">Repair approved by human operator</p>
-                      <p className="text-xs text-muted-foreground font-mono">10 minutes ago • c_demo_ecommerce_123</p>
-                    </div>
+                {timelineEvents.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground font-mono text-sm">
+                    No recent activity
                   </div>
-                  <div className="flex gap-4 relative">
-                    <div className="w-9 h-9 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 z-10 backdrop-blur-md">
-                      <Zap className="w-4 h-4 text-purple-400" />
-                    </div>
-                    <div className="pt-1.5 space-y-1">
-                      <p className="text-sm font-medium">AI diagnosis completed & healing proposed</p>
-                      <p className="text-xs text-muted-foreground font-mono">12 minutes ago • Confidence: 98.5%</p>
-                    </div>
+                ) : (
+                  <div className="space-y-6 relative before:absolute before:inset-y-0 before:left-[17px] before:w-[1px] before:bg-border/50">
+                    {timelineEvents.map(event => (
+                      <div key={event.id} className="flex gap-4 relative">
+                        <div className={`w-9 h-9 rounded-full ${event.bgClass} border flex items-center justify-center shrink-0 z-10 backdrop-blur-md`}>
+                          {event.icon}
+                        </div>
+                        <div className="pt-1.5 space-y-1">
+                          <p className="text-sm font-medium">{event.title}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{event.subtitle}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex gap-4 relative">
-                    <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 z-10 backdrop-blur-md">
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
-                    </div>
-                    <div className="pt-1.5 space-y-1">
-                      <p className="text-sm font-medium">Schema drift detected (Price format changed)</p>
-                      <p className="text-xs text-muted-foreground font-mono">15 minutes ago • Severity: HIGH</p>
-                    </div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </section>
