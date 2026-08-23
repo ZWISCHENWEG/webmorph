@@ -5,6 +5,7 @@
 # It reads the existing Alembic configuration file (backend/alembic.ini)
 # and executes `alembic upgrade head` using the DATABASE_URL env var.
 
+import os
 import sys
 
 from alembic import command
@@ -12,9 +13,12 @@ from alembic.config import Config
 
 
 def main() -> None:
-    # Load the Alembic config file located in the backend directory.
-    cfg_path = "backend/alembic.ini"
+    # Safely resolve the absolute path to alembic.ini relative to this script
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    cfg_path = os.path.join(base_dir, "alembic.ini")
+    
     alembic_cfg = Config(cfg_path)
+    
     # Ensure the config uses the DATABASE_URL environment variable.
     # Alembic's env.py already pulls settings.database_url, which reads the env var.
     # No further action required – just run the upgrade.
